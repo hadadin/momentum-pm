@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'GEMINI_API_KEY is not configured. Add it to Vercel environment variables.' },
+        { error: 'ANTHROPIC_API_KEY is not configured. Add it to Vercel environment variables.' },
         { status: 500 }
       )
     }
@@ -17,25 +16,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
-
     const schemaInstruction = responseSchema
-      ? `\n\nRespond ONLY with valid JSON. No markdown, no code blocks, no extra text. Use this exact structure:\n${JSON.stringify(responseSchema, null, 2)}`
+      ? `\n\nYou MUST respond with ONLY valid JSON — no markdown, no code blocks, no explanation. Use exactly this structure:\n${JSON.stringify(responseSchema, null, 2)}`
       : ''
 
-    const result = await model.generateContent(prompt + schemaInstruction)
-    const text = result.response.text()
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: prompt + schemaInstruction,
+          },
+        ],
+      }),
+    })
 
-    // Try to parse as JSON if schema was provided
+    const anthropicData = await response.json()
+
+    if (!response.ok) {
+      const errMsg =
+        anthropicData?.error?.message || `Anthropic API error: ${response.status}`
+      return NextResponse.json({ error: errMsg }, { status: response.status })
+    }
+
+    const text: string = anthropicData?.content?.[0]?.text ?? ''
+
     if (responseSchema) {
       try {
-        // Strip markdown code blocks if present
         const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
         const parsed = JSON.parse(cleaned)
         return NextResponse.json({ data: parsed })
       } catch {
-        // Return raw text so client can attempt parsing
         return NextResponse.json({ data: text })
       }
     }

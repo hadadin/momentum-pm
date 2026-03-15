@@ -103,7 +103,7 @@ export default function PlanningPage() {
         .from('tasks')
         .select('*')
         .eq('workspace_id', workspace.id)
-        .eq('status', 'done', { negate: true })
+        .neq('status', 'done')
         .is('parent_task_id', null)
         .order('priority', { ascending: true });
 

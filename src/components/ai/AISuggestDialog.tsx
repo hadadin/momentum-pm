@@ -133,11 +133,11 @@ Return JSON with structure: { schedule: [{ day, taskName, timeSlot, reason }] }`
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch suggestions');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch suggestions');
+      }
       // API returns { data: text } - parse the text as JSON
       let data: any = {};
       try {

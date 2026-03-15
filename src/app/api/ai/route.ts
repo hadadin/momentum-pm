@@ -1,19 +1,27 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextRequest, NextResponse } from 'next/server'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
-
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'GEMINI_API_KEY is not configured. Add it to Vercel environment variables.' },
+        { status: 500 }
+      )
+    }
+
     const { prompt, responseSchema } = await req.json()
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
     const schemaInstruction = responseSchema
-      ? `\n\nYou MUST respond with valid JSON matching this schema:\n${JSON.stringify(responseSchema, null, 2)}\n\nReturn ONLY the JSON, no markdown, no code blocks, no extra text.`
+      ? `\n\nRespond ONLY with valid JSON. No markdown, no code blocks, no extra text. Use this exact structure:\n${JSON.stringify(responseSchema, null, 2)}`
       : ''
 
     const result = await model.generateContent(prompt + schemaInstruction)
@@ -27,16 +35,15 @@ export async function POST(req: NextRequest) {
         const parsed = JSON.parse(cleaned)
         return NextResponse.json({ data: parsed })
       } catch {
-        return NextResponse.json({ data: null, raw: text, error: 'Failed to parse AI response as JSON' })
+        // Return raw text so client can attempt parsing
+        return NextResponse.json({ data: text })
       }
     }
 
     return NextResponse.json({ data: text })
   } catch (error) {
     console.error('AI API error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'AI request failed' },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : 'AI request failed'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

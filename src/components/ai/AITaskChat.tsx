@@ -80,11 +80,11 @@ Today's date is ${today}.`;
         body: JSON.stringify({ prompt, responseSchema }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process tasks');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process tasks');
+      }
       let parsed: { tasks?: any[] } = {};
       if (result.data && typeof result.data === 'object') {
         parsed = result.data;

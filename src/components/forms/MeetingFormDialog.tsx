@@ -43,8 +43,8 @@ export default function MeetingFormDialog({
     if (meeting) {
       setTitle(meeting.title || '');
       setDate(meeting.date || '');
-      setProjectId(meeting.project_id || null);
-      setNotes(meeting.notes || '');
+      setProjectId(meeting.project_ids?.[0] || null);
+      setNotes(meeting.raw_notes || '');
       setActionItems([]);
     } else {
       setTitle('');
@@ -66,21 +66,30 @@ export default function MeetingFormDialog({
     setError('');
 
     try {
+      const prompt = `You are a meeting assistant. Extract action items from these meeting notes.
+Meeting notes:
+${notes}
+
+For each action item, provide:
+- title (clear task name)
+- description (brief detail)
+- priority (low/medium/high/critical based on urgency)
+
+Return JSON with structure: { actionItems: [{ title, description, priority }] }`;
+
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'extract-action-items',
-          notes,
-        }),
+        body: JSON.stringify({ prompt }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to extract action items');
       }
 
-      const data = await response.json();
-      const items = data.actionItems || [];
+      const result = await response.json();
+      const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+      const items = parsed?.actionItems || [];
 
       setActionItems(
         items.map((item: any, idx: number) => ({
@@ -151,10 +160,9 @@ export default function MeetingFormDialog({
       const meetingData = {
         title: title.trim(),
         date: date || null,
-        notes: notes.trim(),
-        project_id: projectId,
+        raw_notes: notes.trim(),
+        project_ids: projectId ? [projectId] : [],
         workspace_id: workspaceId,
-        status: 'completed',
       };
 
       if (meeting?.id) {

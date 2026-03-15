@@ -173,7 +173,7 @@ Return JSON with structure: { kpis: [{ metric_name, current_value, previous_valu
         unit: kpi.unit || null,
         trend: kpi.trend,
         date: today,
-        source: 'ai' as const,
+        source: 'agent' as const,
       }));
 
       const { error } = await supabase.from('kpi_entries').insert(kpiRecords);

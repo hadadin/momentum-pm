@@ -84,7 +84,6 @@ export default function AISuggestDialog({
       const taskContext = buildTaskContext();
 
       let prompt = '';
-      let responseSchema = {};
 
       switch (mode) {
         case 'weekly-goals':
@@ -138,7 +137,19 @@ Return JSON with structure: { schedule: [{ day, taskName, timeSlot, reason }] }`
         throw new Error('Failed to fetch suggestions');
       }
 
-      const data = await response.json();
+      const result = await response.json();
+      // API returns { data: text } - parse the text as JSON
+      let data: any = {};
+      try {
+        if (typeof result.data === 'string') {
+          const cleaned = result.data.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          data = JSON.parse(cleaned);
+        } else {
+          data = result.data || {};
+        }
+      } catch {
+        data = {};
+      }
 
       let formattedSuggestions: SuggestionItem[] = [];
 
@@ -201,7 +212,8 @@ Return JSON with structure: { schedule: [{ day, taskName, timeSlot, reason }] }`
         const goals = (suggestions as WeeklyGoal[]).map((goal) => ({
           workspace_id: workspaceId,
           type: 'weekly' as const,
-          content: goal.text,
+          text: goal.text,
+          completed: false,
           date: weekStartStr,
         }));
 
@@ -211,7 +223,8 @@ Return JSON with structure: { schedule: [{ day, taskName, timeSlot, reason }] }`
         const goals = (suggestions as DailyTop3[]).map((priority) => ({
           workspace_id: workspaceId,
           type: 'daily' as const,
-          content: priority.text,
+          text: priority.text,
+          completed: false,
           date: todayStr,
         }));
 

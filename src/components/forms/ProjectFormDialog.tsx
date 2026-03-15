@@ -45,7 +45,7 @@ export default function ProjectFormDialog({
       setName(project.title);
       setDescription(project.description || '');
       setPhase((project.phase as ProjectPhase) || 'discovery');
-      setDeadline(project.deadline || '');
+      setDeadline(project.due_date || '');
       setColor(project.color || 'indigo');
     } else {
       setName('');
@@ -72,7 +72,7 @@ export default function ProjectFormDialog({
         title: name.trim(),
         description: description.trim() || null,
         phase,
-        deadline: deadline || null,
+        due_date: deadline || null,
         color,
         workspace_id: workspaceId,
       };

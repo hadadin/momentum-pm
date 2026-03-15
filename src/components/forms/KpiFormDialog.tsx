@@ -59,11 +59,12 @@ export default function KpiFormDialog({
       const kpiData = {
         workspace_id: workspaceId,
         metric_name: metricName.trim(),
-        current_value: parseFloat(currentValue),
+        value: parseFloat(currentValue),
         previous_value: previousValue ? parseFloat(previousValue) : null,
         unit: unit.trim() || null,
         trend,
         date: date || null,
+        source: 'manual' as const,
       };
 
       const { error: insertError } = await supabase.from('kpi_entries').insert([kpiData]);

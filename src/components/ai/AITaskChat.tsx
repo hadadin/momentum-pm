@@ -64,8 +64,19 @@ Return an array of task objects.`;
         throw new Error('Failed to process tasks');
       }
 
-      const data = await response.json();
-      const tasks = data.tasks || [];
+      const result = await response.json();
+      let parsed: any = {};
+      try {
+        if (typeof result.data === 'string') {
+          const cleaned = result.data.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          parsed = JSON.parse(cleaned);
+        } else {
+          parsed = result.data || {};
+        }
+      } catch {
+        parsed = {};
+      }
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
 
       const formattedTasks: ExtractedTask[] = tasks.map((task: any, idx: number) => ({
         id: `${idx}-${Date.now()}`,

@@ -3,8 +3,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Task, Workspace, KpiEntry, Project, Goal, PRIORITY_CONFIG, STATUS_CONFIG } from '@/types';
-// FocusMode available on Tasks page
-// Inline SVG icons (no external dependency)
+import TaskFormDialog from '@/components/forms/TaskFormDialog';
+import AISuggestDialog from '@/components/ai/AISuggestDialog';
+import AITaskChat from '@/components/ai/AITaskChat';
+
+function getTodayDate(): string {
+  return new Date().toISOString().split('T')[0];
+}
 
 function getWeekStart(): string {
   const today = new Date();
@@ -14,40 +19,21 @@ function getWeekStart(): string {
   return monday.toISOString().split('T')[0];
 }
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
-interface KpiCardProps {
-  kpi: KpiEntry;
-}
-
-function KpiCard({ kpi }: KpiCardProps) {
-  const percentChange = kpi.previous_value && kpi.previous_value > 0
-    ? Math.round(((kpi.value - kpi.previous_value) / kpi.previous_value) * 100)
-    : 0;
-
-  const isPositive = percentChange >= 0;
-  const trendIcon = isPositive ? (
-    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="18 15 12 9 6 15"/></svg>
-  ) : (
-    <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="6 9 12 15 18 9"/></svg>
-  );
-
-  return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">{kpi.metric_name}</p>
-          <p className="text-2xl font-bold text-zinc-900 mt-2">{kpi.value}{kpi.unit}</p>
-        </div>
-        <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          {trendIcon}
-          <span className="text-xs font-semibold">{Math.abs(percentChange)}%</span>
-        </div>
-      </div>
-    </div>
-  );
+function formatDate(): string {
+  const date = new Date();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const day = dayNames[date.getDay()];
+  const month = monthNames[date.getMonth()];
+  const dateNum = date.getDate();
+  return `${day}, ${month} ${dateNum}`;
 }
 
 interface GoalItemProps {
@@ -64,7 +50,7 @@ function GoalItem({ goal, onToggle, onDelete }: GoalItemProps) {
         className="mt-1 flex-shrink-0 focus:outline-none"
       >
         {goal.completed ? (
-          <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m-9-2a10 10 0 1120 0 10 10 0 01-20 0z"/></svg>
         ) : (
           <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
         )}
@@ -76,7 +62,7 @@ function GoalItem({ goal, onToggle, onDelete }: GoalItemProps) {
         onClick={() => onDelete(goal.id)}
         className="flex-shrink-0 text-zinc-400 hover:text-red-600 transition-colors"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
     </div>
   );
@@ -136,110 +122,77 @@ function GoalsColumn({ title, goals, onAddGoal, onToggle, onDelete, showProgress
   );
 }
 
-interface QuickAddFormProps {
-  onTaskAdd: (task: Partial<Task>) => void;
+interface TaskRowProps {
+  task: Task;
+  onToggleDone: (id: string) => void;
+  onEdit: (task: Task) => void;
 }
 
-function QuickAddForm({ onTaskAdd }: QuickAddFormProps) {
-  const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState('medium');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim()) {
-      onTaskAdd({
-        title: title.trim(),
-        priority: priority as Task['priority'],
-        due_date: getTodayDate(),
-        status: 'today'
-      });
-      setTitle('');
-      setPriority('medium');
-    }
-  };
+function TaskRow({ task, onToggleDone, onEdit }: TaskRowProps) {
+  const priorityConfig = PRIORITY_CONFIG[task.priority];
+  const isDone = task.status === 'done';
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg p-4">
-      <h3 className="font-semibold text-zinc-900 mb-3">Quick Add</h3>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a task..."
-          className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          className="px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        >
-          {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
-            <option key={key} value={key}>{config.label}</option>
-          ))}
-        </select>
+    <div className="flex items-start gap-3 p-2 hover:bg-zinc-50 rounded transition-colors">
+      <button
+        onClick={() => onToggleDone(task.id)}
+        className="mt-0.5 flex-shrink-0 focus:outline-none"
+      >
+        {isDone ? (
+          <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m-9-2a10 10 0 1120 0 10 10 0 01-20 0z"/></svg>
+        ) : (
+          <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
         <button
-          type="submit"
-          className="px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          onClick={() => onEdit(task)}
+          className="text-sm text-left font-medium hover:text-indigo-600 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add
+          <p className={`${isDone ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+            {task.title}
+          </p>
         </button>
       </div>
-    </form>
+      <span className={`flex-shrink-0 inline-block px-2 py-1 text-xs font-medium rounded-full ${priorityConfig.bg} ${priorityConfig.color}`}>
+        {priorityConfig.label}
+      </span>
+      {task.project && (
+        <span className="flex-shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600">
+          {task.project.title}
+        </span>
+      )}
+    </div>
   );
 }
 
-interface TaskListProps {
-  tasks: Task[];
-  onToggleDone: (id: string) => void;
+interface KpiCardProps {
+  kpi: KpiEntry;
 }
 
-function TaskList({ tasks, onToggleDone }: TaskListProps) {
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-    return (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
-  });
+function KpiCard({ kpi }: KpiCardProps) {
+  const percentChange = kpi.previous_value && kpi.previous_value > 0
+    ? Math.round(((kpi.value - kpi.previous_value) / kpi.previous_value) * 100)
+    : 0;
+
+  const isPositive = percentChange >= 0;
+  const trendIcon = isPositive ? (
+    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="23 6 23 12 17 12"/></svg>
+  ) : (
+    <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="23 18 23 12 17 12"/></svg>
+  );
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg p-4">
-      <h3 className="font-semibold text-zinc-900 mb-3">Today's Tasks</h3>
-      <div className="space-y-2">
-        {sortedTasks.length === 0 ? (
-          <p className="text-sm text-zinc-400 italic">No tasks for today</p>
-        ) : (
-          sortedTasks.map(task => {
-            const priorityConfig = PRIORITY_CONFIG[task.priority];
-            const isDone = task.status === 'done';
-            return (
-              <div
-                key={task.id}
-                className="flex items-start gap-3 p-2 hover:bg-zinc-50 rounded transition-colors"
-              >
-                <button
-                  onClick={() => onToggleDone(task.id)}
-                  className="mt-0.5 flex-shrink-0 focus:outline-none"
-                >
-                  {isDone ? (
-                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-                  ) : (
-                    <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
-                  )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${isDone ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
-                    {task.title}
-                  </p>
-                </div>
-                <span
-                  className={`flex-shrink-0 inline-block px-2 py-1 text-xs font-medium rounded-full ${priorityConfig.bg} ${priorityConfig.color}`}
-                >
-                  {priorityConfig.label}
-                </span>
-              </div>
-            );
-          })
-        )}
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">{kpi.metric_name}</p>
+          <p className="text-2xl font-bold text-zinc-900 mt-2">{kpi.value}{kpi.unit || ''}</p>
+        </div>
+        <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+          {trendIcon}
+          <span className="text-xs font-semibold">{Math.abs(percentChange)}%</span>
+        </div>
       </div>
     </div>
   );
@@ -254,6 +207,13 @@ export default function DashboardPage() {
   const [dailyGoals, setDailyGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Dialog states
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [aiDailyPlanOpen, setAiDailyPlanOpen] = useState(false);
+  const [aiWeeklyGoalsOpen, setAiWeeklyGoalsOpen] = useState(false);
+  const [aiTaskChatOpen, setAiTaskChatOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -280,9 +240,9 @@ export default function DashboardPage() {
       const [tasksRes, kpisRes, projectsRes, goalsRes] = await Promise.all([
         supabase
           .from('tasks')
-          .select('*')
+          .select('*, project:projects(title, color)')
           .eq('workspace_id', workspaceData.id)
-          .eq('due_date', today)
+          .or(`due_date.eq.${today},status.eq.today`)
           .in('status', ['today', 'in_progress', 'backlog']),
         supabase
           .from('kpi_entries')
@@ -343,23 +303,20 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddTask = async (taskData: Partial<Task>) => {
-    if (!workspace) return;
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setTaskFormOpen(true);
+  };
 
-    const { error } = await supabase
-      .from('tasks')
-      .insert([{
-        ...taskData,
-        workspace_id: workspace.id,
-        source: 'manual',
-        tags: [],
-        is_recurring: false,
-        time_actual_minutes: 0
-      }]);
+  const handleNewTask = () => {
+    setSelectedTask(null);
+    setTaskFormOpen(true);
+  };
 
-    if (!error) {
-      fetchData();
-    }
+  const handleTaskSaved = () => {
+    setTaskFormOpen(false);
+    setSelectedTask(null);
+    fetchData();
   };
 
   const handleAddGoal = async (text: string, type: 'weekly' | 'daily') => {
@@ -416,9 +373,28 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTasksCreatedFromAI = () => {
+    setAiTaskChatOpen(false);
+    fetchData();
+  };
+
+  const handleAISuggestAccepted = () => {
+    setAiDailyPlanOpen(false);
+    setAiWeeklyGoalsOpen(false);
+    fetchData();
+  };
+
+  // Sort tasks by priority
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
+  });
+
+  const completedGoalsCount = dailyGoals.filter(g => g.completed).length;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-zinc-600">Loading dashboard...</p>
@@ -428,67 +404,70 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
-        {/* Greeting */}
+        {/* Header Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900">Good morning</h1>
-          <p className="text-zinc-600 mt-1">Ready to crush your goals today?</p>
+          <h1 className="text-4xl font-bold text-zinc-900">{getGreeting()}</h1>
+          <p className="text-zinc-600 mt-1">{formatDate()}</p>
         </div>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-zinc-200 rounded-lg p-4">
-            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Tasks Due</p>
-            <p className="text-3xl font-bold text-zinc-900 mt-2">{tasks.length}</p>
+            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Tasks Due Today</p>
+            <p className="text-3xl font-bold text-zinc-900 mt-2">{sortedTasks.length}</p>
           </div>
           <div className="bg-white border border-zinc-200 rounded-lg p-4">
             <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Active Projects</p>
             <p className="text-3xl font-bold text-zinc-900 mt-2">{projects.length}</p>
           </div>
           <div className="bg-white border border-zinc-200 rounded-lg p-4">
-            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Daily Goals</p>
-            <p className="text-3xl font-bold text-zinc-900 mt-2">{dailyGoals.length}</p>
+            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Goals Progress</p>
+            <p className="text-3xl font-bold text-zinc-900 mt-2">{completedGoalsCount}/{dailyGoals.length}</p>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        {kpis.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Key Metrics</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {kpis.map(kpi => (
-                <KpiCard key={kpi.id} kpi={kpi} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* AI Action Buttons Row */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <button
+            onClick={() => setAiDailyPlanOpen(true)}
+            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
+          >
+            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="font-medium text-zinc-900">AI Daily Plan</span>
+          </button>
 
-        {/* Active Projects */}
-        {projects.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Active Projects</h2>
-            <div className="flex flex-wrap gap-2">
-              {projects.map(project => (
-                <div
-                  key={project.id}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white"
-                  style={{ backgroundColor: project.color || '#4f46e5' }}
-                >
-                  {project.title}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          <button
+            onClick={() => setAiWeeklyGoalsOpen(true)}
+            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
+          >
+            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="font-medium text-zinc-900">AI Weekly Goals</span>
+          </button>
 
-        {/* Goals Widget */}
+          <button
+            onClick={() => setAiTaskChatOpen(true)}
+            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
+          >
+            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="font-medium text-zinc-900">Add Tasks with AI</span>
+          </button>
+        </div>
+
+        {/* Goals Section */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <GoalsColumn
             title="Weekly Focus"
@@ -507,17 +486,89 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Today's Tasks */}
-        <div className="mb-8">
-          <TaskList tasks={tasks} onToggleDone={handleToggleTask} />
+        {/* Today's Tasks Section */}
+        <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-zinc-900">Today's Tasks</h3>
+            <button
+              onClick={handleNewTask}
+              className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Task
+            </button>
+          </div>
+          <div className="space-y-2">
+            {sortedTasks.length === 0 ? (
+              <p className="text-sm text-zinc-400 italic">No tasks for today</p>
+            ) : (
+              sortedTasks.map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onToggleDone={handleToggleTask}
+                  onEdit={handleEditTask}
+                />
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Quick Add */}
-        <div className="mb-8">
-          <QuickAddForm onTaskAdd={handleAddTask} />
-        </div>
+        {/* Favorite KPIs Section */}
+        {kpis.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Favorite KPIs</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {kpis.map(kpi => (
+                <KpiCard key={kpi.id} kpi={kpi} />
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
+
+      {/* Task Form Dialog */}
+      {workspace && (
+        <TaskFormDialog
+          open={taskFormOpen}
+          onClose={() => setTaskFormOpen(false)}
+          task={selectedTask}
+          workspaceId={workspace.id}
+          projects={projects}
+          onSaved={handleTaskSaved}
+        />
+      )}
+
+      {/* AI Dialogs */}
+      {workspace && (
+        <>
+          <AISuggestDialog
+            open={aiDailyPlanOpen}
+            onClose={() => setAiDailyPlanOpen(false)}
+            mode="daily-top3"
+            workspaceId={workspace.id}
+            tasks={tasks}
+            onAccepted={handleAISuggestAccepted}
+          />
+
+          <AISuggestDialog
+            open={aiWeeklyGoalsOpen}
+            onClose={() => setAiWeeklyGoalsOpen(false)}
+            mode="weekly-goals"
+            workspaceId={workspace.id}
+            tasks={tasks}
+            onAccepted={handleAISuggestAccepted}
+          />
+
+          <AITaskChat
+            open={aiTaskChatOpen}
+            onClose={() => setAiTaskChatOpen(false)}
+            workspaceId={workspace.id}
+            onTasksCreated={handleTasksCreatedFromAI}
+          />
+        </>
+      )}
     </div>
   );
 }

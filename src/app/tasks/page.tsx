@@ -1,43 +1,45 @@
-'use client'
+'use client';
 
-import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import type { Task, TaskStatus, TaskPriority, Workspace, Project, Subtask } from '@/types'
-import { PRIORITY_CONFIG, STATUS_CONFIG } from '@/types'
-import FocusMode from '@/components/FocusMode'
+import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { Task, TaskStatus, TaskPriority, Workspace, Project, Subtask } from '@/types';
+import { PRIORITY_CONFIG, STATUS_CONFIG } from '@/types';
+import TaskFormDialog from '@/components/forms/TaskFormDialog';
+import AITaskChat from '@/components/ai/AITaskChat';
+import FocusMode from '@/components/FocusMode';
 
-// ─── helpers ────────────────────────────────────────────────
 function todayISO() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0];
 }
 
 function isOverdue(task: Task) {
-  if (!task.due_date || task.status === 'done') return false
-  return task.due_date < todayISO()
+  if (!task.due_date || task.status === 'done') return false;
+  return task.due_date < todayISO();
 }
 
-const ALL_STATUSES: TaskStatus[] = ['today', 'in_progress', 'blocked', 'backlog', 'done']
-const ALL_PRIORITIES: TaskPriority[] = ['critical', 'high', 'medium', 'low']
+const ALL_STATUSES: TaskStatus[] = ['backlog', 'today', 'in_progress', 'blocked', 'done'];
+const ALL_PRIORITIES: TaskPriority[] = ['critical', 'high', 'medium', 'low'];
 
-// Kanban column mapping
-type KanbanColumn = 'todo' | 'in-progress' | 'done'
-const KANBAN_COLUMNS: Record<KanbanColumn, TaskStatus[]> = {
-  'todo': ['backlog', 'today'],
-  'in-progress': ['in_progress', 'blocked'],
+// Kanban status grouping
+const KANBAN_COLUMNS: Record<string, TaskStatus[]> = {
+  'backlog': ['backlog'],
+  'today': ['today'],
+  'in_progress': ['in_progress'],
+  'blocked': ['blocked'],
   'done': ['done'],
-}
+};
 
-// ─── Subtask list ──────────────────────────────────────────
+// ─── Subtask List ──────────────────────────────────────────
 function SubtaskList({
   subtasks,
   taskId,
   onToggle,
   onDelete,
 }: {
-  subtasks: Subtask[]
-  taskId: string
-  onToggle: (id: string, completed: boolean) => void
-  onDelete: (id: string) => void
+  subtasks: Subtask[];
+  taskId: string;
+  onToggle: (id: string, completed: boolean) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div className="mt-3 space-y-2 pl-8 border-l-2 border-zinc-100">
@@ -60,7 +62,7 @@ function SubtaskList({
           </span>
           <button
             onClick={() => onDelete(st.id)}
-            className="ml-auto text-zinc-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            className="ml-auto text-zinc-300 hover:text-red-400 transition-colors"
             aria-label="Delete subtask"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -70,54 +72,54 @@ function SubtaskList({
         </div>
       ))}
     </div>
-  )
+  );
 }
 
-// ─── Task row (List view) ──────────────────────────────────────
+// ─── Task Row (List View) ──────────────────────────────────────
 function TaskRow({
   task,
   subtaskCount,
   expandedSubtasks,
   onToggleExpand,
   onToggle,
-  onDelete,
   onStatusChange,
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
+  onEdit,
   onFocus,
   subtasks,
 }: {
-  task: Task
-  subtaskCount: number
-  expandedSubtasks: Set<string>
-  onToggleExpand: (id: string) => void
-  onToggle: (id: string, isDone: boolean) => void
-  onDelete: (id: string) => void
-  onStatusChange: (id: string, status: TaskStatus) => void
-  onAddSubtask: (taskId: string, title: string) => void
-  onToggleSubtask: (id: string, completed: boolean) => void
-  onDeleteSubtask: (id: string) => void
-  onFocus: (task: Task) => void
-  subtasks: Subtask[]
+  task: Task;
+  subtaskCount: number;
+  expandedSubtasks: Set<string>;
+  onToggleExpand: (id: string) => void;
+  onToggle: (id: string, isDone: boolean) => void;
+  onStatusChange: (id: string, status: TaskStatus) => void;
+  onAddSubtask: (taskId: string, title: string) => void;
+  onToggleSubtask: (id: string, completed: boolean) => void;
+  onDeleteSubtask: (id: string) => void;
+  onEdit: (task: Task) => void;
+  onFocus: (task: Task) => void;
+  subtasks: Subtask[];
 }) {
-  const done = task.status === 'done'
-  const overdue = isOverdue(task)
-  const pc = PRIORITY_CONFIG[task.priority]
-  const isExpanded = expandedSubtasks.has(task.id)
-  const [subtaskTitle, setSubtaskTitle] = useState('')
-  const [addingSubtask, setAddingSubtask] = useState(false)
+  const done = task.status === 'done';
+  const overdue = isOverdue(task);
+  const pc = PRIORITY_CONFIG[task.priority];
+  const isExpanded = expandedSubtasks.has(task.id);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [addingSubtask, setAddingSubtask] = useState(false);
 
   const handleAddSubtask = async () => {
-    if (!subtaskTitle.trim()) return
-    setAddingSubtask(true)
-    await onAddSubtask(task.id, subtaskTitle)
-    setSubtaskTitle('')
-    setAddingSubtask(false)
-  }
+    if (!subtaskTitle.trim()) return;
+    setAddingSubtask(true);
+    await onAddSubtask(task.id, subtaskTitle);
+    setSubtaskTitle('');
+    setAddingSubtask(false);
+  };
 
   return (
-    <div className="bg-white border-b border-zinc-100 hover:bg-zinc-50 transition-colors group">
+    <div className="bg-white border-b border-zinc-100 hover:bg-gray-50 transition-colors group">
       <div className={`flex items-start gap-3 px-4 py-3 border-l-4 ${pc.border}`}>
         {/* Checkbox */}
         <button
@@ -135,14 +137,17 @@ function TaskRow({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium text-zinc-800 ${done ? 'line-through text-zinc-400' : ''}`}>
+          <button
+            onClick={() => onEdit(task)}
+            className={`text-sm font-medium text-left hover:text-indigo-600 transition-colors ${done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}
+          >
             {task.title}
-          </p>
+          </button>
           {task.description && (
             <p className="text-xs text-zinc-400 mt-0.5 truncate">{task.description}</p>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {/* Status badge */}
+            {/* Status dropdown */}
             <select
               value={task.status}
               onChange={e => onStatusChange(task.id, e.target.value as TaskStatus)}
@@ -209,23 +214,12 @@ function TaskRow({
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </button>
-
-          {/* Delete button */}
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-1.5 text-zinc-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="Delete task"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
       </div>
 
       {/* Subtasks */}
       {isExpanded && (
-        <div className="px-4 py-3 bg-zinc-50 border-t border-zinc-100">
+        <div className="px-4 py-3 bg-gray-50 border-t border-zinc-100">
           {subtasks.length > 0 && (
             <SubtaskList
               subtasks={subtasks}
@@ -244,7 +238,7 @@ function TaskRow({
               onChange={e => setSubtaskTitle(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
-                  handleAddSubtask()
+                  handleAddSubtask();
                 }
               }}
               className="flex-1 text-xs px-2 py-1.5 border border-zinc-200 rounded-lg bg-white text-zinc-700 placeholder-zinc-400 outline-none focus:ring-1 focus:ring-indigo-400"
@@ -260,32 +254,31 @@ function TaskRow({
         </div>
       )}
     </div>
-  )
+  );
 }
 
-// ─── Kanban card ──────────────────────────────────────────
+// ─── Kanban Card ──────────────────────────────────────────
 function KanbanTaskCard({
   task,
   subtaskCount,
   onStatusChange,
   onToggle,
-  onDelete,
+  onEdit,
   onFocus,
 }: {
-  task: Task
-  subtaskCount: number
-  onStatusChange: (id: string, status: TaskStatus) => void
-  onToggle: (id: string, isDone: boolean) => void
-  onDelete: (id: string) => void
-  onFocus: (task: Task) => void
+  task: Task;
+  subtaskCount: number;
+  onStatusChange: (id: string, status: TaskStatus) => void;
+  onToggle: (id: string, isDone: boolean) => void;
+  onEdit: (task: Task) => void;
+  onFocus: (task: Task) => void;
 }) {
-  const done = task.status === 'done'
-  const overdue = isOverdue(task)
-  const pc = PRIORITY_CONFIG[task.priority]
-  const sc = STATUS_CONFIG[task.status]
+  const done = task.status === 'done';
+  const overdue = isOverdue(task);
+  const pc = PRIORITY_CONFIG[task.priority];
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-3 hover:shadow-md transition-shadow group">
+    <div className="bg-white border border-zinc-200 rounded-lg p-3 hover:shadow-md transition-shadow group cursor-pointer">
       {/* Header with checkbox */}
       <div className="flex items-start gap-2 mb-2">
         <button
@@ -300,21 +293,15 @@ function KanbanTaskCard({
             </svg>
           )}
         </button>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="ml-auto opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-400 transition-all"
-          aria-label="Delete"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </div>
 
       {/* Title */}
-      <p className={`text-sm font-medium text-zinc-800 mb-2 ${done ? 'line-through text-zinc-400' : ''}`}>
+      <button
+        onClick={() => onEdit(task)}
+        className={`text-sm font-medium text-left mb-2 w-full hover:text-indigo-600 transition-colors ${done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}
+      >
         {task.title}
-      </p>
+      </button>
 
       {/* Badges */}
       <div className="flex flex-wrap gap-1.5 mb-2">
@@ -362,176 +349,43 @@ function KanbanTaskCard({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
-// ─── Add task modal ───────────────────────────────────────────
-function AddTaskForm({
-  onAdd,
-  projects,
-  defaultStatus = 'backlog',
-}: {
-  onAdd: (data: Partial<Task>) => Promise<void>
-  projects: Project[]
-  defaultStatus?: TaskStatus
-}) {
-  const [title, setTitle] = useState('')
-  const [status, setStatus] = useState<TaskStatus>(defaultStatus)
-  const [priority, setPriority] = useState<TaskPriority>('medium')
-  const [projectId, setProjectId] = useState('')
-  const [dueDate, setDueDate] = useState('')
-  const [estimate, setEstimate] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [open, setOpen] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim()) return
-    setSubmitting(true)
-    await onAdd({
-      title: title.trim(),
-      status,
-      priority,
-      project_id: projectId || undefined,
-      due_date: dueDate || undefined,
-      time_estimate_minutes: estimate ? parseInt(estimate) : undefined,
-    })
-    setTitle('')
-    setDueDate('')
-    setEstimate('')
-    setSubmitting(false)
-    setOpen(false)
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2 px-4 py-3 bg-white border border-dashed border-zinc-300 rounded-xl text-sm text-zinc-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        New task
-      </button>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="bg-white border border-indigo-300 rounded-xl p-4 space-y-3 shadow-sm">
-      <input
-        autoFocus
-        type="text"
-        placeholder="Task title..."
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        className="w-full text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none"
-      />
-
-      <div className="flex gap-2 flex-wrap">
-        {/* Status */}
-        <select
-          value={status}
-          onChange={e => setStatus(e.target.value as TaskStatus)}
-          className="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 text-zinc-600 bg-white outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          {ALL_STATUSES.map(s => (
-            <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-          ))}
-        </select>
-
-        {/* Priority */}
-        <select
-          value={priority}
-          onChange={e => setPriority(e.target.value as TaskPriority)}
-          className="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 text-zinc-600 bg-white outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          {ALL_PRIORITIES.map(p => (
-            <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
-          ))}
-        </select>
-
-        {/* Project */}
-        {projects.length > 0 && (
-          <select
-            value={projectId}
-            onChange={e => setProjectId(e.target.value)}
-            className="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 text-zinc-600 bg-white outline-none focus:ring-1 focus:ring-indigo-400"
-          >
-            <option value="">No project</option>
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
-          </select>
-        )}
-
-        {/* Due date */}
-        <input
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-          className="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 text-zinc-600 bg-white outline-none focus:ring-1 focus:ring-indigo-400"
-        />
-
-        {/* Estimate */}
-        <input
-          type="number"
-          placeholder="Estimate (min)"
-          value={estimate}
-          onChange={e => setEstimate(e.target.value)}
-          className="w-28 text-xs border border-zinc-200 rounded-lg px-2 py-1.5 text-zinc-600 bg-white outline-none focus:ring-1 focus:ring-indigo-400"
-        />
-      </div>
-
-      <div className="flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-xs text-zinc-400 hover:text-zinc-600 px-3 py-1.5 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!title.trim() || submitting}
-          className="text-xs bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
-        >
-          {submitting ? 'Adding...' : 'Add task'}
-        </button>
-      </div>
-    </form>
-  )
-}
-
-// ─── Main page ────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────
 export default function TasksPage() {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>({})
-  const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
-  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
-  const [projectFilter, setProjectFilter] = useState<string>('all')
-  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set())
-  const [focusTask, setFocusTask] = useState<Task | null>(null)
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+
+  // Dialog states
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [focusTask, setFocusTask] = useState<Task | null>(null);
+  const [aiTaskChatOpen, setAiTaskChatOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const { data: ws } = await supabase
         .from('workspaces')
         .select('*')
         .eq('is_active', true)
         .limit(1)
-        .single()
+        .single();
 
       if (!ws) {
-        setLoading(false)
-        return
+        setLoading(false);
+        return;
       }
-      setWorkspace(ws)
+      setWorkspace(ws);
 
       const [{ data: taskData }, { data: projectData }, { data: subtaskData }] = await Promise.all([
         supabase
@@ -548,68 +402,45 @@ export default function TasksPage() {
           .from('subtasks')
           .select('*, task:tasks!inner(workspace_id)')
           .eq('task.workspace_id', ws.id),
-      ])
+      ]);
 
-      setTasks(taskData ?? [])
-      setProjects(projectData ?? [])
+      setTasks(taskData ?? []);
+      setProjects(projectData ?? []);
 
       // Group subtasks by task_id
-      const grouped: Record<string, Subtask[]> = {}
+      const grouped: Record<string, Subtask[]> = {};
       if (subtaskData) {
         subtaskData.forEach(st => {
-          if (!grouped[st.task_id]) grouped[st.task_id] = []
-          grouped[st.task_id].push(st)
-        })
+          if (!grouped[st.task_id]) grouped[st.task_id] = [];
+          grouped[st.task_id].push(st);
+        });
       }
-      setSubtasksMap(grouped)
+      setSubtasksMap(grouped);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchData();
+  }, [fetchData]);
 
   const toggleTask = async (taskId: string, isDone: boolean) => {
-    const newStatus: TaskStatus = isDone ? 'today' : 'done'
+    const newStatus: TaskStatus = isDone ? 'today' : 'done';
     await supabase.from('tasks').update({
       status: newStatus,
       completed_at: isDone ? null : new Date().toISOString(),
-    }).eq('id', taskId)
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
-  }
-
-  const deleteTask = async (taskId: string) => {
-    await supabase.from('tasks').delete().eq('id', taskId)
-    setTasks(prev => prev.filter(t => t.id !== taskId))
-  }
+    }).eq('id', taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+  };
 
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
-    await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId)
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
-  }
-
-  const addTask = async (data: Partial<Task>) => {
-    if (!workspace) return
-    const { data: created } = await supabase
-      .from('tasks')
-      .insert({
-        ...data,
-        workspace_id: workspace.id,
-        source: 'manual',
-        time_actual_minutes: 0,
-      })
-      .select('*, project:projects(title, color)')
-      .single()
-
-    if (created) {
-      setTasks(prev => [created, ...prev])
-    }
-  }
+    await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+  };
 
   const addSubtask = async (taskId: string, title: string) => {
-    if (!workspace) return
+    if (!workspace) return;
     const { data: created } = await supabase
       .from('subtasks')
       .insert({
@@ -618,82 +449,105 @@ export default function TasksPage() {
         completed: false,
       })
       .select()
-      .single()
+      .single();
 
     if (created) {
       setSubtasksMap(prev => ({
         ...prev,
         [taskId]: [...(prev[taskId] ?? []), created],
-      }))
+      }));
     }
-  }
+  };
 
   const toggleSubtask = async (subtaskId: string, completed: boolean) => {
-    await supabase.from('subtasks').update({ completed: !completed }).eq('id', subtaskId)
+    await supabase.from('subtasks').update({ completed: !completed }).eq('id', subtaskId);
     setSubtasksMap(prev => {
-      const updated = { ...prev }
+      const updated = { ...prev };
       Object.keys(updated).forEach(taskId => {
         updated[taskId] = updated[taskId].map(st =>
           st.id === subtaskId ? { ...st, completed: !st.completed } : st
-        )
-      })
-      return updated
-    })
-  }
+        );
+      });
+      return updated;
+    });
+  };
 
   const deleteSubtask = async (subtaskId: string) => {
-    await supabase.from('subtasks').delete().eq('id', subtaskId)
+    await supabase.from('subtasks').delete().eq('id', subtaskId);
     setSubtasksMap(prev => {
-      const updated = { ...prev }
+      const updated = { ...prev };
       Object.keys(updated).forEach(taskId => {
-        updated[taskId] = updated[taskId].filter(st => st.id !== subtaskId)
-      })
-      return updated
-    })
-  }
+        updated[taskId] = updated[taskId].filter(st => st.id !== subtaskId);
+      });
+      return updated;
+    });
+  };
 
   const toggleExpandSubtasks = (taskId: string) => {
     setExpandedSubtasks(prev => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(taskId)) {
-        next.delete(taskId)
+        next.delete(taskId);
       } else {
-        next.add(taskId)
+        next.add(taskId);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
+
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setTaskFormOpen(true);
+  };
+
+  const handleNewTask = () => {
+    setSelectedTask(null);
+    setTaskFormOpen(true);
+  };
+
+  const handleTaskSaved = () => {
+    setTaskFormOpen(false);
+    setSelectedTask(null);
+    fetchData();
+  };
+
+  const handleTasksCreatedFromAI = () => {
+    setAiTaskChatOpen(false);
+    fetchData();
+  };
 
   // Filtered tasks
   const filtered = tasks.filter(t => {
-    if (statusFilter !== 'all' && t.status !== statusFilter) return false
-    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
-    if (projectFilter !== 'all' && t.project_id !== projectFilter) return false
-    return true
-  })
+    if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+    if (projectFilter !== 'all' && t.project_id !== projectFilter) return false;
+    return true;
+  });
 
-  const priorityOrder: Record<TaskPriority, number> = { critical: 0, high: 1, medium: 2, low: 3 }
-  const statusOrder: Record<TaskStatus, number> = { blocked: 0, in_progress: 1, today: 2, backlog: 3, done: 4 }
+  const priorityOrder: Record<TaskPriority, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const statusOrder: Record<TaskStatus, number> = { blocked: 0, in_progress: 1, today: 2, backlog: 3, done: 4 };
   const sorted = [...filtered].sort((a, b) => {
-    const statusDiff = statusOrder[a.status] - statusOrder[b.status]
-    if (statusDiff !== 0) return statusDiff
-    return priorityOrder[a.priority] - priorityOrder[b.priority]
-  })
+    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+    if (statusDiff !== 0) return statusDiff;
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  });
 
   // Stats
-  const totalActive = tasks.filter(t => t.status !== 'done').length
-  const overdueCount = tasks.filter(t => isOverdue(t)).length
-  const doneToday = tasks.filter(t => t.status === 'done' && t.completed_at?.startsWith(todayISO())).length
+  const totalActive = tasks.filter(t => t.status !== 'done').length;
+  const overdueCount = tasks.filter(t => isOverdue(t)).length;
+  const doneToday = tasks.filter(t => t.status === 'done' && t.completed_at?.startsWith(todayISO())).length;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Tasks</h1>
-          <p className="text-sm text-zinc-400 mt-0.5">
-            {totalActive} active · {overdueCount} overdue · {doneToday} done today
-          </p>
+          <h1 className="text-2xl font-bold text-zinc-900">
+            Tasks
+            <span className="ml-3 inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium">
+              {tasks.length}
+            </span>
+          </h1>
         </div>
 
         {/* View toggle */}
@@ -703,7 +557,7 @@ export default function TasksPage() {
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               viewMode === 'list'
                 ? 'bg-indigo-600 text-white'
-                : 'text-zinc-600 hover:bg-zinc-50'
+                : 'text-zinc-600 hover:bg-gray-50'
             }`}
           >
             List
@@ -714,7 +568,7 @@ export default function TasksPage() {
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               viewMode === 'kanban'
                 ? 'bg-indigo-600 text-white'
-                : 'text-zinc-600 hover:bg-zinc-50'
+                : 'text-zinc-600 hover:bg-gray-50'
             }`}
           >
             Kanban
@@ -726,21 +580,21 @@ export default function TasksPage() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         {/* Status filters */}
         <div className="flex bg-white border border-zinc-200 rounded-xl overflow-hidden p-0.5 gap-0.5">
-          {['all', 'today', 'in_progress', 'blocked', 'backlog', 'done'].map((value) => {
-            const label = value === 'all' ? 'All' : STATUS_CONFIG[value as TaskStatus]?.label || value
+          {(['all', 'backlog', 'today', 'in_progress', 'blocked', 'done'] as const).map((value) => {
+            const label = value === 'all' ? 'All' : STATUS_CONFIG[value]?.label || value;
             return (
               <button
                 key={value}
-                onClick={() => setStatusFilter(value as TaskStatus | 'all')}
+                onClick={() => setStatusFilter(value === 'all' ? 'all' : value)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   statusFilter === value
                     ? 'bg-zinc-900 text-white'
-                    : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50'
+                    : 'text-zinc-500 hover:text-zinc-700 hover:bg-gray-50'
                 }`}
               >
                 {label}
               </button>
-            )
+            );
           })}
         </div>
 
@@ -768,10 +622,24 @@ export default function TasksPage() {
           ))}
         </select>
 
-        {/* Count */}
-        <span className="text-xs text-zinc-400 ml-auto">
-          {sorted.length} task{sorted.length !== 1 ? 's' : ''}
-        </span>
+        {/* Action buttons */}
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={handleNewTask}
+            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Task
+          </button>
+
+          <button
+            onClick={() => setAiTaskChatOpen(true)}
+            className="px-4 py-2 text-sm bg-white border border-zinc-200 text-zinc-900 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            Add with AI
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -783,9 +651,8 @@ export default function TasksPage() {
         </div>
       ) : sorted.length === 0 ? (
         <div className="bg-white border border-dashed border-zinc-200 rounded-xl px-6 py-12 text-center">
-          <div className="text-3xl mb-2">📭</div>
           <p className="text-zinc-600 font-medium text-sm">No tasks match this filter</p>
-          <p className="text-zinc-400 text-xs mt-1">Try a different filter or add a new task below</p>
+          <p className="text-zinc-400 text-xs mt-1">Try a different filter or create a new task</p>
         </div>
       ) : viewMode === 'list' ? (
         <div className="rounded-xl overflow-hidden border border-zinc-200 mb-4 bg-white">
@@ -797,11 +664,11 @@ export default function TasksPage() {
               expandedSubtasks={expandedSubtasks}
               onToggleExpand={toggleExpandSubtasks}
               onToggle={toggleTask}
-              onDelete={deleteTask}
               onStatusChange={updateTaskStatus}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onDeleteSubtask={deleteSubtask}
+              onEdit={handleEditTask}
               onFocus={setFocusTask}
               subtasks={subtasksMap[task.id] ?? []}
             />
@@ -809,21 +676,23 @@ export default function TasksPage() {
         </div>
       ) : (
         // Kanban view
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {(['todo', 'in-progress', 'done'] as const).map(column => {
-            const columnTasks = sorted.filter(t => KANBAN_COLUMNS[column].includes(t.status))
+        <div className="grid grid-cols-5 gap-4 mb-4">
+          {(['backlog', 'today', 'in_progress', 'blocked', 'done'] as const).map(column => {
+            const columnTasks = sorted.filter(t => t.status === column);
             const columnLabels: Record<typeof column, string> = {
-              'todo': 'To Do',
-              'in-progress': 'In Progress',
+              'backlog': 'Backlog',
+              'today': 'Today',
+              'in_progress': 'In Progress',
+              'blocked': 'Blocked',
               'done': 'Done',
-            }
+            };
 
             return (
               <div key={column} className="flex flex-col">
                 <h2 className="text-sm font-semibold text-zinc-700 mb-3">
                   {columnLabels[column]} ({columnTasks.length})
                 </h2>
-                <div className="flex-1 space-y-3 bg-zinc-50 rounded-xl p-4 min-h-96">
+                <div className="flex-1 space-y-3 bg-gray-50 rounded-xl p-4 min-h-96">
                   {columnTasks.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-xs text-zinc-400">No tasks</p>
@@ -836,24 +705,37 @@ export default function TasksPage() {
                         subtaskCount={subtasksMap[task.id]?.length ?? 0}
                         onStatusChange={updateTaskStatus}
                         onToggle={toggleTask}
-                        onDelete={deleteTask}
+                        onEdit={handleEditTask}
                         onFocus={setFocusTask}
                       />
                     ))
                   )}
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
 
-      {/* Add task form */}
+      {/* Task Form Dialog */}
       {workspace && (
-        <AddTaskForm
-          onAdd={addTask}
+        <TaskFormDialog
+          open={taskFormOpen}
+          onClose={() => setTaskFormOpen(false)}
+          task={selectedTask}
+          workspaceId={workspace.id}
           projects={projects}
-          defaultStatus={statusFilter !== 'all' ? statusFilter as TaskStatus : 'backlog'}
+          onSaved={handleTaskSaved}
+        />
+      )}
+
+      {/* AI Task Chat Dialog */}
+      {workspace && (
+        <AITaskChat
+          open={aiTaskChatOpen}
+          onClose={() => setAiTaskChatOpen(false)}
+          workspaceId={workspace.id}
+          onTasksCreated={handleTasksCreatedFromAI}
         />
       )}
 
@@ -862,5 +744,5 @@ export default function TasksPage() {
         <FocusMode task={focusTask} onClose={() => setFocusTask(null)} />
       )}
     </div>
-  )
+  );
 }

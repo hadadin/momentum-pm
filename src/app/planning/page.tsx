@@ -3,18 +3,43 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Task, TimeBlock, Workspace, PRIORITY_CONFIG } from '@/types';
+import AISuggestDialog from '@/components/ai/AISuggestDialog';
+
 // Inline SVG icons
 function ChevronLeft({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="15 18 9 12 15 6"/></svg>
-}
-function ChevronRight({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
-}
-function XIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
 }
 
-// Helper function to get the Sunday of the current week
+function ChevronRight({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+// Helper functions
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
@@ -22,16 +47,14 @@ function getWeekStart(date: Date): Date {
   return new Date(d.setDate(diff));
 }
 
-// Helper function to format date as YYYY-MM-DD
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-// Helper function to format date range for display
 function formatDateRange(startDate: Date): string {
   const start = new Date(startDate);
   const end = new Date(startDate);
-  end.setDate(end.getDate() + 4); // Thursday is 4 days after Sunday
+  end.setDate(end.getDate() + 4);
 
   const startStr = start.toLocaleDateString('en-US', {
     month: 'short',
@@ -46,10 +69,7 @@ function formatDateRange(startDate: Date): string {
   return `${startStr} - ${endStr}`;
 }
 
-// Days of the work week (Sunday-Thursday for Israel)
 const WORK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-
-// Hours from 09:00 to 18:00
 const HOURS = Array.from({ length: 10 }, (_, i) => {
   const hour = 9 + i;
   return `${String(hour).padStart(2, '0')}:00`;
@@ -60,17 +80,17 @@ type ScheduledTask = Task & {
 };
 
 export default function PlanningPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(getWeekStart(new Date()));
   const [tasks, setTasks] = useState<Task[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
   const [unscheduledTasks, setUnscheduledTasks] = useState<Task[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
-  // Get current workspace
+  // Get workspace
   useEffect(() => {
     const fetchWorkspace = async () => {
       const { data: workspaceData } = await supabase
@@ -98,7 +118,6 @@ export default function PlanningPage() {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 5);
 
-      // Fetch all non-done tasks without parent_task_id
       const { data: tasksData } = await supabase
         .from('tasks')
         .select('*')
@@ -107,10 +126,14 @@ export default function PlanningPage() {
         .is('parent_task_id', null)
         .order('priority', { ascending: true });
 
-      // Fetch time blocks for this week
       const { data: timeBlocksData } = await supabase
         .from('time_blocks')
-        .select('*')
+        .select(
+          `
+          *,
+          task:tasks(title, priority, project_id, time_estimate_minutes)
+        `
+        )
         .eq('workspace_id', workspace.id)
         .gte('date', formatDate(weekStart))
         .lt('date', formatDate(weekEnd));
@@ -132,7 +155,6 @@ export default function PlanningPage() {
   // Calculate unscheduled and scheduled tasks
   useEffect(() => {
     const scheduledTaskIds = new Set(timeBlocks.map((tb) => tb.task_id));
-
     const unscheduled = tasks.filter((task) => !scheduledTaskIds.has(task.id));
 
     const scheduled = timeBlocks
@@ -176,13 +198,18 @@ export default function PlanningPage() {
         end_time: `${endHour}:00`,
       });
 
-      // Refresh time blocks
+      // Refresh
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 5);
 
       const { data: updatedTimeBlocks } = await supabase
         .from('time_blocks')
-        .select('*')
+        .select(
+          `
+          *,
+          task:tasks(title, priority, project_id, time_estimate_minutes)
+        `
+        )
         .eq('workspace_id', workspace.id)
         .gte('date', formatDate(weekStart))
         .lt('date', formatDate(weekEnd));
@@ -190,8 +217,6 @@ export default function PlanningPage() {
       if (updatedTimeBlocks) {
         setTimeBlocks(updatedTimeBlocks);
       }
-
-      setSelectedTask(null);
     } catch (error) {
       console.error('Error scheduling task:', error);
     }
@@ -202,7 +227,6 @@ export default function PlanningPage() {
 
     try {
       await supabase.from('time_blocks').delete().eq('id', timeBlockId);
-
       setTimeBlocks((prev) => prev.filter((tb) => tb.id !== timeBlockId));
     } catch (error) {
       console.error('Error unscheduling task:', error);
@@ -211,13 +235,13 @@ export default function PlanningPage() {
 
   const getTaskColor = (priority: string): string => {
     const config = PRIORITY_CONFIG[priority as keyof typeof PRIORITY_CONFIG];
-    if (!config) return 'bg-zinc-200 text-zinc-900';
+    if (!config) return 'bg-gray-200 text-gray-900';
     return `${config.bg} ${config.color}`;
   };
 
   const getTaskCardColor = (priority: string): string => {
     const config = PRIORITY_CONFIG[priority as keyof typeof PRIORITY_CONFIG];
-    if (!config) return 'bg-zinc-100 border-zinc-300';
+    if (!config) return 'bg-gray-100 border-gray-300';
     return `${config.bg} ${config.border}`;
   };
 
@@ -233,34 +257,44 @@ export default function PlanningPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-600">Loading schedule...</div>
+        <div className="text-gray-600">Loading schedule...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-zinc-900 mb-4">Weekly Schedule</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Weekly Planning</h1>
+            <p className="text-gray-600 text-sm mt-1">{formatDateRange(weekStart)}</p>
+          </div>
+          <button
+            onClick={() => setAiDialogOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+          >
+            <SparkleIcon className="w-4 h-4" />
+            AI Plan Week
+          </button>
+        </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-zinc-200 shadow-sm">
+        <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
           <button
             onClick={handlePreviousWeek}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
           >
             <ChevronLeft className="w-5 h-5" />
             Previous
           </button>
 
-          <span className="text-lg font-semibold text-zinc-700">
-            {formatDateRange(weekStart)}
-          </span>
+          <span className="text-lg font-semibold text-gray-700">{formatDateRange(weekStart)}</span>
 
           <button
             onClick={handleNextWeek}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
           >
             Next
             <ChevronRight className="w-5 h-5" />
@@ -268,53 +302,41 @@ export default function PlanningPage() {
         </div>
       </div>
 
-      {/* Main Layout: Left Panel + Right Panel */}
+      {/* Layout: Left + Right */}
       <div className="flex gap-6">
         {/* Left Panel: Unscheduled Tasks */}
         <div className="w-80 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 flex-shrink-0">
               <h2 className="text-lg font-semibold text-white">Unscheduled Tasks</h2>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(100vh-220px)] p-4 space-y-2">
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
               {unscheduledTasks.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500">
+                <div className="text-center py-8 text-gray-500">
                   <p className="text-sm">All tasks scheduled!</p>
                 </div>
               ) : (
                 unscheduledTasks.map((task) => (
-                  <button
+                  <div
                     key={task.id}
-                    onClick={() =>
-                      setSelectedTask(selectedTask?.id === task.id ? null : task)
-                    }
-                    className={`w-full text-left p-3 rounded-lg border-2 transition ${
-                      selectedTask?.id === task.id
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-zinc-200 bg-zinc-50 hover:border-indigo-300'
-                    }`}
+                    className="p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition cursor-help"
+                    title="Click to select and drag to schedule"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-zinc-900 text-sm line-clamp-2">
-                          {task.title}
-                        </p>
-                        {task.time_estimate_minutes && (
-                          <p className="text-xs text-zinc-600 mt-1">
-                            {Math.ceil(task.time_estimate_minutes / 60)}h est.
-                          </p>
-                        )}
-                      </div>
+                    <p className="font-medium text-gray-900 text-sm line-clamp-2">{task.title}</p>
+                    <div className="flex items-center justify-between mt-2">
                       <span
-                        className={`flex-shrink-0 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getTaskColor(
-                          task.priority
-                        )}`}
+                        className={`text-xs font-medium px-2 py-1 rounded ${getTaskColor(task.priority)}`}
                       >
                         {task.priority}
                       </span>
+                      {task.time_estimate_minutes && (
+                        <span className="text-xs text-gray-600">
+                          {Math.ceil(task.time_estimate_minutes / 60)}h
+                        </span>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
@@ -323,20 +345,19 @@ export default function PlanningPage() {
 
         {/* Right Panel: Weekly Grid */}
         <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-            {/* Grid Header with Hours */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <div className="inline-block min-w-full">
                 {/* Time header */}
-                <div className="flex border-b border-zinc-200">
-                  <div className="w-32 flex-shrink-0 bg-zinc-50 px-4 py-3 border-r border-zinc-200" />
+                <div className="flex border-b border-gray-200">
+                  <div className="w-32 flex-shrink-0 bg-gray-50 px-4 py-3 border-r border-gray-200" />
                   {HOURS.map((hour, idx) => (
                     <div
                       key={hour}
-                      className={`w-24 flex-shrink-0 px-3 py-3 text-center text-sm font-medium ${
+                      className={`w-24 flex-shrink-0 px-3 py-3 text-center text-sm font-medium border-r border-gray-200 ${
                         idx === currentHourIndex
                           ? 'bg-indigo-50 text-indigo-700'
-                          : 'bg-zinc-50 text-zinc-700 border-r border-zinc-200'
+                          : 'bg-gray-50 text-gray-700'
                       }`}
                     >
                       {hour}
@@ -351,11 +372,11 @@ export default function PlanningPage() {
                   const dateStr = formatDate(dayDate);
 
                   return (
-                    <div key={day} className="flex border-b border-zinc-200 last:border-b-0">
+                    <div key={day} className="flex border-b border-gray-200 last:border-b-0">
                       {/* Day label */}
-                      <div className="w-32 flex-shrink-0 bg-zinc-50 px-4 py-3 border-r border-zinc-200">
-                        <p className="font-semibold text-zinc-900 text-sm">{day}</p>
-                        <p className="text-xs text-zinc-600 mt-1">
+                      <div className="w-32 flex-shrink-0 bg-gray-50 px-4 py-3 border-r border-gray-200">
+                        <p className="font-semibold text-gray-900 text-sm">{day}</p>
+                        <p className="text-xs text-gray-600 mt-1">
                           {dayDate.toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -374,22 +395,11 @@ export default function PlanningPage() {
                         return (
                           <div
                             key={`${day}-${hour}`}
-                            onClick={() => {
-                              if (selectedTask) {
-                                handleScheduleTask(selectedTask, dayIndex, hour);
-                              }
-                            }}
-                            className={`w-24 flex-shrink-0 min-h-20 p-2 border-r border-zinc-200 cursor-pointer transition relative ${
-                              selectedTask
-                                ? 'hover:bg-indigo-100'
-                                : 'hover:bg-zinc-100'
-                            } ${
-                              hourIdx === currentHourIndex
-                                ? 'bg-indigo-50'
-                                : 'bg-white'
-                            }`}
+                            className={`w-24 flex-shrink-0 min-h-20 p-2 border-r border-gray-200 transition relative ${
+                              hourIdx === currentHourIndex ? 'bg-indigo-50' : 'bg-white'
+                            } hover:bg-gray-50`}
                           >
-                            {/* Task cards in this slot */}
+                            {/* Task cards */}
                             <div className="space-y-1 h-full flex flex-col justify-start">
                               {tasksInSlot.map((st) => (
                                 <div
@@ -399,15 +409,13 @@ export default function PlanningPage() {
                                   )}`}
                                 >
                                   <div className="flex items-start gap-1">
-                                    <span className="flex-1 line-clamp-2">
-                                      {st.title}
-                                    </span>
+                                    <span className="flex-1 line-clamp-2">{st.title}</span>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleUnscheduleTask(st.timeBlock.id);
                                       }}
-                                      className="opacity-0 group-hover:opacity-100 transition flex-shrink-0 ml-1"
+                                      className="opacity-0 group-hover:opacity-100 transition flex-shrink-0"
                                     >
                                       <XIcon className="w-3 h-3 text-current" />
                                     </button>
@@ -415,11 +423,6 @@ export default function PlanningPage() {
                                 </div>
                               ))}
                             </div>
-
-                            {/* Visual indicator when task is selected */}
-                            {selectedTask && (
-                              <div className="absolute inset-0 rounded border-2 border-indigo-400 pointer-events-none opacity-20" />
-                            )}
                           </div>
                         );
                       })}
@@ -432,14 +435,39 @@ export default function PlanningPage() {
         </div>
       </div>
 
-      {/* Selected Task Indicator */}
-      {selectedTask && (
-        <div className="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-lg">
-          <p className="text-sm font-medium">
-            Click on a time slot to schedule: <span className="font-semibold">{selectedTask.title}</span>
-          </p>
-        </div>
-      )}
+      {/* AI Dialog */}
+      <AISuggestDialog
+        open={aiDialogOpen}
+        onClose={() => setAiDialogOpen(false)}
+        mode="weekly-planning"
+        workspaceId={workspace?.id || ''}
+        tasks={unscheduledTasks}
+        onAccepted={() => {
+          // Refresh time blocks
+          if (workspace) {
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 5);
+
+            supabase
+              .from('time_blocks')
+              .select(
+                `
+              *,
+              task:tasks(title, priority, project_id, time_estimate_minutes)
+            `
+              )
+              .eq('workspace_id', workspace.id)
+              .gte('date', formatDate(weekStart))
+              .lt('date', formatDate(weekEnd))
+              .then(({ data }) => {
+                if (data) {
+                  setTimeBlocks(data);
+                }
+              });
+          }
+          setAiDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -123,9 +123,12 @@ Return an array of task objects.`;
         description: task.description || null,
         priority: task.priority,
         due_date: task.due_date || null,
-        time_estimate: task.time_estimate ? `${Math.round(task.time_estimate / 60)}h` : null,
-        status: 'today',
-        source: 'chat',
+        time_estimate_minutes: task.time_estimate || null,
+        status: 'today' as const,
+        source: 'chat' as const,
+        tags: [],
+        is_recurring: false,
+        time_actual_minutes: 0,
       }));
 
       const { error: insertError } = await supabase.from('tasks').insert(tasksToInsert);

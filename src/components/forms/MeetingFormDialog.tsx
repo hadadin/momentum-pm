@@ -120,9 +120,12 @@ export default function MeetingFormDialog({
         title: item.title,
         description: item.description,
         priority: item.priority,
-        status: 'today',
-        source: 'meeting',
+        status: 'today' as const,
+        source: 'meeting' as const,
         project_id: projectId,
+        tags: [],
+        is_recurring: false,
+        time_actual_minutes: 0,
       }));
 
       const { error: insertError } = await supabase.from('tasks').insert(tasks);

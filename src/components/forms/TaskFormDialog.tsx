@@ -44,7 +44,7 @@ export default function TaskFormDialog({
       setStatus(task.status as TaskStatus);
       setProjectId(task.project_id || null);
       setDueDate(task.due_date || '');
-      setTimeEstimate(task.time_estimate || '');
+      setTimeEstimate(task.time_estimate_minutes ? String(task.time_estimate_minutes) : '');
     } else {
       setTitle('');
       setDescription('');
@@ -68,17 +68,20 @@ export default function TaskFormDialog({
     setError('');
 
     try {
-      const taskData = {
+      const taskData: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || null,
         priority,
         status,
         project_id: projectId,
         due_date: dueDate || null,
-        time_estimate: timeEstimate || null,
-        source: 'manual',
+        time_estimate_minutes: timeEstimate ? parseInt(timeEstimate) : null,
+        source: 'manual' as const,
         workspace_id: workspaceId,
         parent_task_id: parentTaskId || null,
+        tags: [],
+        is_recurring: false,
+        time_actual_minutes: 0,
       };
 
       if (task?.id) {

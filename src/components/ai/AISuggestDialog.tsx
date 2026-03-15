@@ -66,7 +66,7 @@ export default function AISuggestDialog({
       .slice(0, 20)
       .map(
         (task) =>
-          `- [${task.priority}] ${task.title}${task.due_date ? ` (due: ${task.due_date}` : ''}${task.time_estimate ? `, est: ${task.time_estimate}` : ''}${task.due_date || task.time_estimate ? ')' : ''}`
+          `- [${task.priority}] ${task.title}${task.due_date ? ` (due: ${task.due_date}` : ''}${task.time_estimate_minutes ? `, est: ${task.time_estimate_minutes}min` : ''}${task.due_date || task.time_estimate_minutes ? ')' : ''}`
       )
       .join('\n');
   };

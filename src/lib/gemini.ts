@@ -1,7 +1,2 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
-export const geminiFlash = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
-})
+// Gemini integration removed — AI calls now go through src/app/api/ai/route.ts using the Anthropic API
+export {}

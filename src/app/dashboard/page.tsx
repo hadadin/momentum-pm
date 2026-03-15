@@ -1,332 +1,523 @@
-'use client'
+'use client';
 
-import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import type { Task, DailyPlan, Workspace } from '@/types'
-import { PRIORITY_CONFIG, STATUS_CONFIG } from '@/types'
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Task, Workspace, KpiEntry, Project, Goal, PRIORITY_CONFIG, STATUS_CONFIG } from '@/types';
+// FocusMode available on Tasks page
+// Inline SVG icons (no external dependency)
 
-// ─── helpers ────────────────────────────────────────────────
-function todayISO() {
-  return new Date().toISOString().split('T')[0]
+function getWeekStart(): string {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(today.setDate(diff));
+  return monday.toISOString().split('T')[0];
 }
 
-function greeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
+function getTodayDate(): string {
+  return new Date().toISOString().split('T')[0];
 }
 
-function formatDate(d: Date) {
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+interface KpiCardProps {
+  kpi: KpiEntry;
 }
 
-function isOverdue(task: Task) {
-  if (!task.due_date || task.status === 'done') return false
-  return task.due_date < todayISO()
-}
+function KpiCard({ kpi }: KpiCardProps) {
+  const percentChange = kpi.previous_value && kpi.previous_value > 0
+    ? Math.round(((kpi.value - kpi.previous_value) / kpi.previous_value) * 100)
+    : 0;
 
-// ─── sub-components ─────────────────────────────────────────
-function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-zinc-200 px-5 py-4 flex flex-col gap-1">
-      <span className={`text-2xl font-bold ${color}`}>{value}</span>
-      <span className="text-xs text-zinc-400 font-medium uppercase tracking-wide">{label}</span>
-    </div>
-  )
-}
-
-function PriorityDot({ priority }: { priority: Task['priority'] }) {
-  return (
-    <span className={`w-2 h-2 rounded-full shrink-0 ${PRIORITY_CONFIG[priority].dot}`} />
-  )
-}
-
-function StatusBadge({ status }: { status: Task['status'] }) {
-  const cfg = STATUS_CONFIG[status]
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cfg.bgColor} ${cfg.textColor}`}>
-      {cfg.label}
-    </span>
-  )
-}
-
-function TaskRow({
-  task,
-  onToggle,
-  highlight,
-}: {
-  task: Task
-  onToggle: (id: string, done: boolean) => void
-  highlight?: boolean
-}) {
-  const overdue = isOverdue(task)
-  const done = task.status === 'done'
+  const isPositive = percentChange >= 0;
+  const trendIcon = isPositive ? (
+    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="18 15 12 9 6 15"/></svg>
+  ) : (
+    <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="6 9 12 15 18 9"/></svg>
+  );
 
   return (
-    <div
-      className={`flex items-start gap-3 px-4 py-3 rounded-xl border transition-all ${
-        highlight
-          ? 'bg-indigo-50 border-indigo-200'
-          : 'bg-white border-zinc-200 hover:border-zinc-300'
-      } ${done ? 'opacity-50' : ''}`}
-    >
-      {/* Checkbox */}
-      <button
-        onClick={() => onToggle(task.id, done)}
-        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-          done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-indigo-400'
-        }`}
-        aria-label={done ? 'Mark incomplete' : 'Mark done'}
-      >
-        {done && (
-          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </button>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <PriorityDot priority={task.priority} />
-          <span className={`text-sm font-medium text-zinc-800 truncate ${done ? 'line-through text-zinc-400' : ''}`}>
-            {task.title}
-          </span>
-          {highlight && (
-            <span className="text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-medium">⭐ Top 3</span>
-          )}
-          {overdue && (
-            <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Overdue</span>
-          )}
+    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">{kpi.metric_name}</p>
+          <p className="text-2xl font-bold text-zinc-900 mt-2">{kpi.value}{kpi.unit}</p>
         </div>
-        <div className="flex items-center gap-3 mt-1">
-          <StatusBadge status={task.status} />
-          {task.project && (
-            <span
-              className="text-xs text-zinc-500 font-medium"
-              style={{ color: task.project.color }}
-            >
-              {task.project.title}
-            </span>
-          )}
-          {task.due_date && (
-            <span className={`text-xs ${overdue ? 'text-red-500' : 'text-zinc-400'}`}>
-              {overdue ? '⚠ ' : ''}Due {task.due_date}
-            </span>
-          )}
-          {task.time_estimate_minutes && (
-            <span className="text-xs text-zinc-400">{task.time_estimate_minutes}m</span>
-          )}
+        <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+          {trendIcon}
+          <span className="text-xs font-semibold">{Math.abs(percentChange)}%</span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-// ─── Empty states ─────────────────────────────────────────────
-function EmptyToday() {
+interface GoalItemProps {
+  goal: Goal;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function GoalItem({ goal, onToggle, onDelete }: GoalItemProps) {
   return (
-    <div className="bg-white border border-dashed border-zinc-200 rounded-xl px-6 py-10 text-center">
-      <div className="text-3xl mb-2">🎯</div>
-      <p className="text-zinc-600 font-medium text-sm">No tasks for today yet</p>
-      <p className="text-zinc-400 text-xs mt-1">Add a task below or pull from backlog</p>
+    <div className="flex items-start gap-3 py-2">
+      <button
+        onClick={() => onToggle(goal.id)}
+        className="mt-1 flex-shrink-0 focus:outline-none"
+      >
+        {goal.completed ? (
+          <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        ) : (
+          <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
+        )}
+      </button>
+      <span className={`flex-1 text-sm ${goal.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+        {goal.text}
+      </span>
+      <button
+        onClick={() => onDelete(goal.id)}
+        className="flex-shrink-0 text-zinc-400 hover:text-red-600 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
     </div>
-  )
+  );
 }
 
-// ─── Main page ────────────────────────────────────────────────
-export default function DashboardPage() {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [newTaskTitle, setNewTaskTitle] = useState('')
-  const [addingTask, setAddingTask] = useState(false)
-  const today = todayISO()
+interface GoalsColumnProps {
+  title: string;
+  goals: Goal[];
+  onAddGoal: (text: string) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  showProgress?: boolean;
+}
 
-  // ── fetch ──
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+function GoalsColumn({ title, goals, onAddGoal, onToggle, onDelete, showProgress }: GoalsColumnProps) {
+  const [newGoal, setNewGoal] = useState('');
+  const completedCount = goals.filter(g => g.completed).length;
+
+  const handleAddGoal = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newGoal.trim()) {
+      onAddGoal(newGoal.trim());
+      setNewGoal('');
+    }
+  };
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-zinc-900">{title}</h3>
+        {showProgress && (
+          <span className="text-xs font-medium text-zinc-600">{completedCount}/{goals.length}</span>
+        )}
+      </div>
+      <div className="space-y-1 mb-4 max-h-64 overflow-y-auto">
+        {goals.length === 0 ? (
+          <p className="text-xs text-zinc-400 italic">No goals yet</p>
+        ) : (
+          goals.map(goal => (
+            <GoalItem
+              key={goal.id}
+              goal={goal}
+              onToggle={onToggle}
+              onDelete={onDelete}
+            />
+          ))
+        )}
+      </div>
+      <input
+        type="text"
+        value={newGoal}
+        onChange={(e) => setNewGoal(e.target.value)}
+        onKeyDown={handleAddGoal}
+        placeholder={`Add ${title.toLowerCase()}...`}
+        className="w-full px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      />
+    </div>
+  );
+}
+
+interface QuickAddFormProps {
+  onTaskAdd: (task: Partial<Task>) => void;
+}
+
+function QuickAddForm({ onTaskAdd }: QuickAddFormProps) {
+  const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState('medium');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (title.trim()) {
+      onTaskAdd({
+        title: title.trim(),
+        priority: priority as Task['priority'],
+        due_date: getTodayDate(),
+        status: 'today'
+      });
+      setTitle('');
+      setPriority('medium');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg p-4">
+      <h3 className="font-semibold text-zinc-900 mb-3">Quick Add</h3>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Add a task..."
+          className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        />
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        >
+          {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
+            <option key={key} value={key}>{config.label}</option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add
+        </button>
+      </div>
+    </form>
+  );
+}
+
+interface TaskListProps {
+  tasks: Task[];
+  onToggleDone: (id: string) => void;
+}
+
+function TaskList({ tasks, onToggleDone }: TaskListProps) {
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
+  });
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+      <h3 className="font-semibold text-zinc-900 mb-3">Today's Tasks</h3>
+      <div className="space-y-2">
+        {sortedTasks.length === 0 ? (
+          <p className="text-sm text-zinc-400 italic">No tasks for today</p>
+        ) : (
+          sortedTasks.map(task => {
+            const priorityConfig = PRIORITY_CONFIG[task.priority];
+            const isDone = task.status === 'done';
+            return (
+              <div
+                key={task.id}
+                className="flex items-start gap-3 p-2 hover:bg-zinc-50 rounded transition-colors"
+              >
+                <button
+                  onClick={() => onToggleDone(task.id)}
+                  className="mt-0.5 flex-shrink-0 focus:outline-none"
+                >
+                  {isDone ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${isDone ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+                    {task.title}
+                  </p>
+                </div>
+                <span
+                  className={`flex-shrink-0 inline-block px-2 py-1 text-xs font-medium rounded-full ${priorityConfig.bg} ${priorityConfig.color}`}
+                >
+                  {priorityConfig.label}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [kpis, setKpis] = useState<KpiEntry[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
+  const [dailyGoals, setDailyGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
     try {
-      // 1. workspace
-      const { data: ws } = await supabase
+      setLoading(true);
+      setError(null);
+
+      const { data: workspaceData, error: workspaceError } = await supabase
         .from('workspaces')
         .select('*')
         .eq('is_active', true)
         .limit(1)
-        .single()
+        .maybeSingle();
 
-      if (!ws) { setLoading(false); return }
-      setWorkspace(ws)
+      if (workspaceError) throw workspaceError;
+      if (!workspaceData) {
+        setError('No workspace found');
+        return;
+      }
+      setWorkspace(workspaceData);
 
-      // 2. today's tasks (status = today | in_progress | blocked, or scheduled_date = today)
-      const { data: taskData } = await supabase
-        .from('tasks')
-        .select('*, project:projects(title, color)')
-        .eq('workspace_id', ws.id)
-        .or(`status.in.(today,in_progress,blocked),scheduled_date.eq.${today}`)
-        .order('priority', { ascending: true })
+      const today = getTodayDate();
+      const weekStart = getWeekStart();
 
-      setTasks(taskData ?? [])
+      const [tasksRes, kpisRes, projectsRes, goalsRes] = await Promise.all([
+        supabase
+          .from('tasks')
+          .select('*')
+          .eq('workspace_id', workspaceData.id)
+          .eq('due_date', today)
+          .in('status', ['today', 'in_progress', 'backlog']),
+        supabase
+          .from('kpi_entries')
+          .select('*')
+          .eq('workspace_id', workspaceData.id)
+          .eq('is_favorite', true)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('projects')
+          .select('*')
+          .eq('workspace_id', workspaceData.id)
+          .not('phase', 'in', '("archived","launched")'),
+        supabase
+          .from('goals')
+          .select('*')
+          .eq('workspace_id', workspaceData.id)
+          .or(`and(type.eq.daily,date.eq.${today}),and(type.eq.weekly,date.eq.${weekStart})`)
+      ]);
 
-      // 3. daily plan for today
-      const { data: plan } = await supabase
-        .from('daily_plans')
-        .select('*')
-        .eq('workspace_id', ws.id)
-        .eq('date', today)
-        .maybeSingle()
+      if (tasksRes.error) throw tasksRes.error;
+      if (kpisRes.error) throw kpisRes.error;
+      if (projectsRes.error) throw projectsRes.error;
+      if (goalsRes.error) throw goalsRes.error;
 
-      setDailyPlan(plan)
+      setTasks(tasksRes.data || []);
+      setKpis(kpisRes.data || []);
+      setProjects(projectsRes.data || []);
+
+      const goalsData = goalsRes.data || [];
+      setWeeklyGoals(goalsData.filter(g => g.type === 'weekly'));
+      setDailyGoals(goalsData.filter(g => g.type === 'daily'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      console.error('Dashboard error:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [today])
+  };
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // ── toggle done ──
-  const toggleTask = async (taskId: string, isDone: boolean) => {
-    const newStatus = isDone ? 'today' : 'done'
-    const updates: Partial<Task> = {
-      status: newStatus,
-      completed_at: isDone ? undefined : new Date().toISOString(),
-    }
-    await supabase.from('tasks').update(updates).eq('id', taskId)
-    setTasks(prev =>
-      prev.map(t => t.id === taskId ? { ...t, ...updates } : t)
-    )
-  }
+  const handleToggleTask = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-  // ── add task ──
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTaskTitle.trim() || !workspace) return
-    setAddingTask(true)
-    const { data } = await supabase
+    const newStatus = task.status === 'done' ? 'today' : 'done';
+    const { error } = await supabase
       .from('tasks')
-      .insert({
-        workspace_id: workspace.id,
-        title: newTaskTitle.trim(),
-        status: 'today',
-        priority: 'medium',
-        source: 'manual',
-        scheduled_date: today,
-      })
-      .select('*, project:projects(title, color)')
-      .single()
+      .update({ status: newStatus })
+      .eq('id', taskId);
 
-    if (data) {
-      setTasks(prev => [data, ...prev])
-      setNewTaskTitle('')
+    if (!error) {
+      setTasks(tasks.map(t =>
+        t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t
+      ));
     }
-    setAddingTask(false)
+  };
+
+  const handleAddTask = async (taskData: Partial<Task>) => {
+    if (!workspace) return;
+
+    const { error } = await supabase
+      .from('tasks')
+      .insert([{
+        ...taskData,
+        workspace_id: workspace.id,
+        source: 'manual',
+        tags: [],
+        is_recurring: false,
+        time_actual_minutes: 0
+      }]);
+
+    if (!error) {
+      fetchData();
+    }
+  };
+
+  const handleAddGoal = async (text: string, type: 'weekly' | 'daily') => {
+    if (!workspace) return;
+
+    const date = type === 'daily' ? getTodayDate() : getWeekStart();
+    const { error } = await supabase
+      .from('goals')
+      .insert([{
+        workspace_id: workspace.id,
+        type,
+        text,
+        completed: false,
+        date
+      }]);
+
+    if (!error) {
+      fetchData();
+    }
+  };
+
+  const handleToggleGoal = async (goalId: string) => {
+    const allGoals = [...weeklyGoals, ...dailyGoals];
+    const goal = allGoals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const { error } = await supabase
+      .from('goals')
+      .update({ completed: !goal.completed })
+      .eq('id', goalId);
+
+    if (!error) {
+      if (goal.type === 'weekly') {
+        setWeeklyGoals(weeklyGoals.map(g =>
+          g.id === goalId ? { ...g, completed: !g.completed } : g
+        ));
+      } else {
+        setDailyGoals(dailyGoals.map(g =>
+          g.id === goalId ? { ...g, completed: !g.completed } : g
+        ));
+      }
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    const { error } = await supabase
+      .from('goals')
+      .delete()
+      .eq('id', goalId);
+
+    if (!error) {
+      setWeeklyGoals(weeklyGoals.filter(g => g.id !== goalId));
+      setDailyGoals(dailyGoals.filter(g => g.id !== goalId));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-zinc-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  // ── derived ──
-  const top3Ids = new Set(dailyPlan?.top_3 ?? [])
-  const doneTasks = tasks.filter(t => t.status === 'done')
-  const activeTasks = tasks.filter(t => t.status !== 'done')
-  const blockedCount = tasks.filter(t => t.status === 'blocked').length
-  const overdueCount = tasks.filter(t => isOverdue(t)).length
-  const top3Tasks = activeTasks.filter(t => top3Ids.has(t.id))
-  const otherTasks = activeTasks.filter(t => !top3Ids.has(t.id))
-
-  // ── render ──
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <p className="text-zinc-400 text-sm font-medium">{formatDate(new Date())}</p>
-        <h1 className="text-2xl font-bold text-zinc-900 mt-0.5">
-          {greeting()}, Noam 👋
-        </h1>
-      </div>
-
-      {loading ? (
-        <div className="space-y-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="h-16 bg-zinc-200 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <>
-          {/* Stats row */}
-          <div className="grid grid-cols-4 gap-3 mb-8">
-            <StatCard value={activeTasks.length} label="Active today" color="text-indigo-600" />
-            <StatCard value={doneTasks.length}   label="Done today"   color="text-green-600" />
-            <StatCard value={blockedCount}        label="Blocked"      color="text-red-500" />
-            <StatCard value={overdueCount}        label="Overdue"      color="text-orange-500" />
+    <div className="min-h-screen bg-zinc-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
+        )}
 
-          {/* Top 3 */}
-          {top3Tasks.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
-                ⭐ Top 3 Today
-              </h2>
-              <div className="space-y-2">
-                {top3Tasks.map(task => (
-                  <TaskRow key={task.id} task={task} onToggle={toggleTask} highlight />
-                ))}
-              </div>
-            </section>
-          )}
+        {/* Greeting */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-zinc-900">Good morning</h1>
+          <p className="text-zinc-600 mt-1">Ready to crush your goals today?</p>
+        </div>
 
-          {/* Active tasks */}
-          <section className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                Today&apos;s Tasks
-              </h2>
-              <span className="text-xs text-zinc-400">{activeTasks.length} active</span>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-white border border-zinc-200 rounded-lg p-4">
+            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Tasks Due</p>
+            <p className="text-3xl font-bold text-zinc-900 mt-2">{tasks.length}</p>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg p-4">
+            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Active Projects</p>
+            <p className="text-3xl font-bold text-zinc-900 mt-2">{projects.length}</p>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg p-4">
+            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Daily Goals</p>
+            <p className="text-3xl font-bold text-zinc-900 mt-2">{dailyGoals.length}</p>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        {kpis.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Key Metrics</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {kpis.map(kpi => (
+                <KpiCard key={kpi.id} kpi={kpi} />
+              ))}
             </div>
+          </div>
+        )}
 
-            {activeTasks.length === 0 ? (
-              <EmptyToday />
-            ) : (
-              <div className="space-y-2">
-                {otherTasks.map(task => (
-                  <TaskRow key={task.id} task={task} onToggle={toggleTask} />
-                ))}
-              </div>
-            )}
-          </section>
+        {/* Active Projects */}
+        {projects.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Active Projects</h2>
+            <div className="flex flex-wrap gap-2">
+              {projects.map(project => (
+                <div
+                  key={project.id}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white"
+                  style={{ backgroundColor: project.color || '#4f46e5' }}
+                >
+                  {project.title}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-          {/* Done tasks (collapsed) */}
-          {doneTasks.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
-                ✅ Done ({doneTasks.length})
-              </h2>
-              <div className="space-y-2">
-                {doneTasks.map(task => (
-                  <TaskRow key={task.id} task={task} onToggle={toggleTask} />
-                ))}
-              </div>
-            </section>
-          )}
+        {/* Goals Widget */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <GoalsColumn
+            title="Weekly Focus"
+            goals={weeklyGoals}
+            onAddGoal={(text) => handleAddGoal(text, 'weekly')}
+            onToggle={handleToggleGoal}
+            onDelete={handleDeleteGoal}
+          />
+          <GoalsColumn
+            title="Daily Top 3"
+            goals={dailyGoals}
+            onAddGoal={(text) => handleAddGoal(text, 'daily')}
+            onToggle={handleToggleGoal}
+            onDelete={handleDeleteGoal}
+            showProgress
+          />
+        </div>
 
-          {/* Quick add */}
-          <form onSubmit={addTask} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="+ Add a task for today..."
-              value={newTaskTitle}
-              onChange={e => setNewTaskTitle(e.target.value)}
-              className="flex-1 bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
-            />
-            <button
-              type="submit"
-              disabled={!newTaskTitle.trim() || addingTask}
-              className="bg-indigo-600 text-white px-5 py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {addingTask ? '...' : 'Add'}
-            </button>
-          </form>
-        </>
-      )}
+        {/* Today's Tasks */}
+        <div className="mb-8">
+          <TaskList tasks={tasks} onToggleDone={handleToggleTask} />
+        </div>
+
+        {/* Quick Add */}
+        <div className="mb-8">
+          <QuickAddForm onTaskAdd={handleAddTask} />
+        </div>
+
+      </div>
     </div>
-  )
+  );
 }

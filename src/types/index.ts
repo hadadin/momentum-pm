@@ -13,6 +13,11 @@ export interface Workspace {
   description?: string
   instance_path?: string
   is_active: boolean
+  work_start_hour?: number
+  work_end_hour?: number
+  week_starts_on?: number
+  default_task_duration?: number
+  show_weekends?: boolean
   created_at: string
 }
 
@@ -36,8 +41,11 @@ export interface Task {
   recurring_rule?: Record<string, unknown>
   created_at: string
   completed_at?: string
+  parent_task_id?: string
+  focused_time_spent?: number
   // joined relations
   project?: { title: string; color: string } | null
+  subtasks?: Subtask[]
 }
 
 export interface Project {
@@ -139,6 +147,10 @@ export interface KpiEntry {
   metric_name: string
   value: number
   previous_value?: number
+  unit?: string
+  trend?: 'up' | 'down' | 'neutral'
+  is_favorite?: boolean
+  display_order?: number
   date: string
   source: 'manual' | 'chat' | 'integration' | 'agent'
   notes?: string
@@ -178,6 +190,36 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   parsed_actions?: Record<string, unknown>
+  created_at: string
+}
+
+export interface Goal {
+  id: string
+  workspace_id: string
+  type: 'weekly' | 'daily'
+  text: string
+  completed: boolean
+  linked_task_id?: string
+  date: string
+  created_at: string
+}
+
+export interface TimeBlock {
+  id: string
+  workspace_id: string
+  task_id: string
+  date: string
+  start_time: string
+  end_time: string
+  created_at: string
+  task?: { title: string; priority: TaskPriority; project_id?: string; time_estimate_minutes?: number } | null
+}
+
+export interface Subtask {
+  id: string
+  task_id: string
+  title: string
+  completed: boolean
   created_at: string
 }
 

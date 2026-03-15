@@ -2,14 +2,16 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Decision, Workspace, Project } from '@/types'
+import { Decision, Workspace } from '@/types'
+
+type ProjectOption = { id: string; title: string }
 
 const CONFIDENCE_COLORS = { high: 'text-green-600 bg-green-50', medium: 'text-amber-600 bg-amber-50', low: 'text-red-600 bg-red-50' }
 
 export default function DecisionsPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [decisions, setDecisions] = useState<Decision[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<ProjectOption[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)

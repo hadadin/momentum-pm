@@ -14,7 +14,7 @@ interface MeetingWithExtras extends Meeting {
 }
 
 const STATUS_CONFIG: Record<MeetingStatus, { label: string; bg: string; text: string }> = {
-  pending:      { label: 'Pending',        bg: 'bg-zinc-100',   text: 'text-zinc-600' },
+  pending:      { label: 'Pending',        bg: 'bg-gray-100',   text: 'text-gray-600' },
   processed:    { label: 'Processed',      bg: 'bg-blue-100',   text: 'text-blue-700' },
   tasks_created: { label: 'Tasks Created', bg: 'bg-green-100',  text: 'text-green-700' },
 }
@@ -108,15 +108,15 @@ export default function MeetingsPage() {
       development: 'bg-amber-100 text-amber-700',
       testing:     'bg-orange-100 text-orange-700',
       launched:    'bg-green-100 text-green-700',
-      archived:    'bg-zinc-100 text-zinc-600',
+      archived:    'bg-gray-100 text-gray-600',
     }
-    return phase && phase in phaseColorMap ? phaseColorMap[phase] : 'bg-zinc-100 text-zinc-600'
+    return phase && phase in phaseColorMap ? phaseColorMap[phase] : 'bg-gray-100 text-gray-600'
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-zinc-400">
+        <div className="text-gray-400">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
           <p>Loading meetings...</p>
         </div>
@@ -125,19 +125,19 @@ export default function MeetingsPage() {
   }
 
   if (!workspace) {
-    return <div className="p-10 text-center text-zinc-400">No workspace found</div>
+    return <div className="p-10 text-center text-gray-400">No workspace found</div>
   }
 
   const groupedMeetings = groupMeetingsByRecency(meetings)
   const hasAnyMeetings = Object.values(groupedMeetings).some(g => g.length > 0)
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900">Meetings</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Meetings</h1>
           </div>
           <button
             onClick={() => {
@@ -161,7 +161,7 @@ export default function MeetingsPage() {
 
               return (
                 <div key={groupName}>
-                  <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4 px-1">
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 px-1">
                     {groupName}
                   </h2>
 
@@ -176,16 +176,16 @@ export default function MeetingsPage() {
                       return (
                         <div
                           key={m.id}
-                          className="bg-white border border-zinc-200 rounded-lg overflow-hidden hover:border-zinc-300 transition-colors"
+                          className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors"
                         >
                           {/* Card Header */}
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                            className="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-zinc-50 transition-colors"
+                            className="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-gray-50 transition-colors"
                           >
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-zinc-900">{m.title}</h3>
-                              <div className="text-xs text-zinc-500 mt-1.5 flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold text-gray-900">{m.title}</h3>
+                              <div className="text-xs text-gray-500 mt-1.5 flex flex-wrap items-center gap-2">
                                 <span>📅 {m.date || 'No date'}</span>
                                 {m.attendees && m.attendees.length > 0 && (
                                   <>
@@ -225,7 +225,7 @@ export default function MeetingsPage() {
                               )}
 
                               {/* Expand/Collapse Indicator */}
-                              <span className="text-zinc-300 text-sm ml-1">
+                              <span className="text-gray-300 text-sm ml-1">
                                 {isExpanded ? (
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -241,12 +241,12 @@ export default function MeetingsPage() {
 
                           {/* Expanded Content */}
                           {isExpanded && (
-                            <div className="border-t border-zinc-100 px-5 py-4 space-y-4 text-sm bg-zinc-50">
+                            <div className="border-t border-gray-100 px-5 py-4 space-y-4 text-sm bg-gray-50">
                               {/* Notes Preview */}
                               {m.raw_notes && (
                                 <div>
-                                  <p className="text-xs font-semibold text-zinc-500 mb-2">Notes</p>
-                                  <p className="text-xs text-zinc-600 line-clamp-2 whitespace-pre-wrap font-mono bg-white border border-zinc-200 rounded p-3">
+                                  <p className="text-xs font-semibold text-gray-500 mb-2">Notes</p>
+                                  <p className="text-xs text-gray-600 line-clamp-2 whitespace-pre-wrap font-mono bg-white border border-gray-200 rounded p-3">
                                     {m.raw_notes}
                                   </p>
                                 </div>
@@ -255,21 +255,21 @@ export default function MeetingsPage() {
                               {/* Summary */}
                               {m.summary && (
                                 <div>
-                                  <p className="text-xs font-semibold text-zinc-500 mb-2">Summary</p>
-                                  <p className="text-xs text-zinc-600">{m.summary}</p>
+                                  <p className="text-xs font-semibold text-gray-500 mb-2">Summary</p>
+                                  <p className="text-xs text-gray-600">{m.summary}</p>
                                 </div>
                               )}
 
                               {/* Action Items */}
                               {m.action_items && m.action_items.length > 0 && (
                                 <div>
-                                  <p className="text-xs font-semibold text-zinc-500 mb-2">Action Items ({actionItemCount})</p>
+                                  <p className="text-xs font-semibold text-gray-500 mb-2">Action Items ({actionItemCount})</p>
                                   <div className="space-y-2">
                                     {m.action_items.map((item, idx) => (
                                       <div key={idx} className="text-xs bg-amber-50 border border-amber-200 rounded p-2">
-                                        <p className="text-zinc-700 font-medium">{(item as any).description || item}</p>
-                                        {(item as any).owner && <p className="text-zinc-500 mt-1">Owner: {(item as any).owner}</p>}
-                                        {(item as any).due_date && <p className="text-zinc-500">Due: {(item as any).due_date}</p>}
+                                        <p className="text-gray-700 font-medium">{(item as any).description || item}</p>
+                                        {(item as any).owner && <p className="text-gray-500 mt-1">Owner: {(item as any).owner}</p>}
+                                        {(item as any).due_date && <p className="text-gray-500">Due: {(item as any).due_date}</p>}
                                       </div>
                                     ))}
                                   </div>
@@ -277,7 +277,7 @@ export default function MeetingsPage() {
                               )}
 
                               {/* Footer Actions */}
-                              <div className="flex gap-3 pt-2 border-t border-zinc-200">
+                              <div className="flex gap-3 pt-2 border-t border-gray-200">
                                 <button
                                   onClick={() => handleMeetingClick(m)}
                                   className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
@@ -296,8 +296,8 @@ export default function MeetingsPage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-16 text-zinc-400">
-            <svg className="w-16 h-16 mx-auto mb-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-16 text-gray-400">
+            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="text-lg font-medium">No meetings recorded</p>

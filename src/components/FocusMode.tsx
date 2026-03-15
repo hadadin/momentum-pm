@@ -72,11 +72,11 @@ export default function FocusMode({ task, onClose }: FocusModeProps) {
   const dashOffset = circumference * (1 - progress)
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 z-50 flex flex-col items-center justify-center">
+    <div className="fixed inset-0 bg-gray-950 z-50 flex flex-col items-center justify-center">
       {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-6 right-6 text-zinc-400 hover:text-white transition-colors"
+        className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors"
       >
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -88,7 +88,7 @@ export default function FocusMode({ task, onClose }: FocusModeProps) {
         <span className="text-indigo-400 text-sm font-medium uppercase tracking-widest">Focus Mode</span>
         <h2 className="text-white text-2xl font-bold mt-2">{task.title}</h2>
         {task.project && (
-          <span className="text-zinc-500 text-sm mt-1 block">{task.project.title}</span>
+          <span className="text-gray-500 text-sm mt-1 block">{task.project.title}</span>
         )}
       </div>
 
@@ -112,7 +112,7 @@ export default function FocusMode({ task, onClose }: FocusModeProps) {
           <span className="text-white text-5xl font-mono font-bold">
             {String(displayMinutes).padStart(2, '0')}:{String(displaySeconds).padStart(2, '0')}
           </span>
-          <span className="text-zinc-500 text-sm mt-2">
+          <span className="text-gray-500 text-sm mt-2">
             {hasEstimate ? (running ? 'remaining' : 'countdown') : (running ? 'elapsed' : 'stopwatch')}
           </span>
         </div>
@@ -140,16 +140,16 @@ export default function FocusMode({ task, onClose }: FocusModeProps) {
       {/* Stats */}
       <div className="flex gap-8 mt-10 text-center">
         <div>
-          <span className="text-zinc-500 text-xs block">Session</span>
+          <span className="text-gray-500 text-xs block">Session</span>
           <span className="text-white text-lg font-medium">{Math.floor(elapsed / 60)}m</span>
         </div>
         <div>
-          <span className="text-zinc-500 text-xs block">Total focused</span>
+          <span className="text-gray-500 text-xs block">Total focused</span>
           <span className="text-white text-lg font-medium">{(task.focused_time_spent ?? 0) + Math.floor(elapsed / 60)}m</span>
         </div>
         {hasEstimate && (
           <div>
-            <span className="text-zinc-500 text-xs block">Estimate</span>
+            <span className="text-gray-500 text-xs block">Estimate</span>
             <span className="text-white text-lg font-medium">{task.time_estimate_minutes}m</span>
           </div>
         )}

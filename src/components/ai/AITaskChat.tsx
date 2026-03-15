@@ -50,14 +50,34 @@ Extract all tasks mentioned. For each task, determine:
 - description (more details if provided, otherwise empty string)
 - priority (low/medium/high/critical based on context, default to medium)
 - due_date (if mentioned, format as YYYY-MM-DD, otherwise null)
-- time_estimate (if mentioned in minutes, otherwise null)
-Today's date is ${today}.
-Return an array of task objects.`;
+- time_estimate (if mentioned in minutes as a number, otherwise null)
+Today's date is ${today}.`;
+
+      const responseSchema = {
+        type: 'object',
+        properties: {
+          tasks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                description: { type: 'string' },
+                priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                due_date: { type: 'string' },
+                time_estimate: { type: 'number' },
+              },
+              required: ['title', 'priority'],
+            },
+          },
+        },
+        required: ['tasks'],
+      };
 
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, responseSchema }),
       });
 
       if (!response.ok) {
@@ -65,16 +85,16 @@ Return an array of task objects.`;
       }
 
       const result = await response.json();
-      let parsed: any = {};
-      try {
-        if (typeof result.data === 'string') {
+      let parsed: { tasks?: any[] } = {};
+      if (result.data && typeof result.data === 'object') {
+        parsed = result.data;
+      } else if (typeof result.data === 'string') {
+        try {
           const cleaned = result.data.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
           parsed = JSON.parse(cleaned);
-        } else {
-          parsed = result.data || {};
+        } catch {
+          parsed = {};
         }
-      } catch {
-        parsed = {};
       }
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
 

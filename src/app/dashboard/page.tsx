@@ -52,15 +52,15 @@ function GoalItem({ goal, onToggle, onDelete }: GoalItemProps) {
         {goal.completed ? (
           <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m-9-2a10 10 0 1120 0 10 10 0 01-20 0z"/></svg>
         ) : (
-          <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
+          <svg className="w-5 h-5 text-gray-300 hover:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
         )}
       </button>
-      <span className={`flex-1 text-sm ${goal.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+      <span className={`flex-1 text-sm ${goal.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
         {goal.text}
       </span>
       <button
         onClick={() => onDelete(goal.id)}
-        className="flex-shrink-0 text-zinc-400 hover:text-red-600 transition-colors"
+        className="flex-shrink-0 text-gray-400 hover:text-red-600 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
@@ -89,16 +89,16 @@ function GoalsColumn({ title, goals, onAddGoal, onToggle, onDelete, showProgress
   };
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-zinc-900">{title}</h3>
+        <h3 className="font-semibold text-gray-900">{title}</h3>
         {showProgress && (
-          <span className="text-xs font-medium text-zinc-600">{completedCount}/{goals.length}</span>
+          <span className="text-xs font-medium text-gray-600">{completedCount}/{goals.length}</span>
         )}
       </div>
       <div className="space-y-1 mb-4 max-h-64 overflow-y-auto">
         {goals.length === 0 ? (
-          <p className="text-xs text-zinc-400 italic">No goals yet</p>
+          <p className="text-xs text-gray-400 italic">No goals yet</p>
         ) : (
           goals.map(goal => (
             <GoalItem
@@ -116,7 +116,7 @@ function GoalsColumn({ title, goals, onAddGoal, onToggle, onDelete, showProgress
         onChange={(e) => setNewGoal(e.target.value)}
         onKeyDown={handleAddGoal}
         placeholder={`Add ${title.toLowerCase()}...`}
-        className="w-full px-3 py-2 text-sm border border-zinc-200 rounded bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
       />
     </div>
   );
@@ -133,7 +133,7 @@ function TaskRow({ task, onToggleDone, onEdit }: TaskRowProps) {
   const isDone = task.status === 'done';
 
   return (
-    <div className="flex items-start gap-3 p-2 hover:bg-zinc-50 rounded transition-colors">
+    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded transition-colors">
       <button
         onClick={() => onToggleDone(task.id)}
         className="mt-0.5 flex-shrink-0 focus:outline-none"
@@ -141,7 +141,7 @@ function TaskRow({ task, onToggleDone, onEdit }: TaskRowProps) {
         {isDone ? (
           <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m-9-2a10 10 0 1120 0 10 10 0 01-20 0z"/></svg>
         ) : (
-          <svg className="w-5 h-5 text-zinc-300 hover:text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
+          <svg className="w-5 h-5 text-gray-300 hover:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>
         )}
       </button>
       <div className="flex-1 min-w-0">
@@ -149,7 +149,7 @@ function TaskRow({ task, onToggleDone, onEdit }: TaskRowProps) {
           onClick={() => onEdit(task)}
           className="text-sm text-left font-medium hover:text-indigo-600 transition-colors"
         >
-          <p className={`${isDone ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+          <p className={`${isDone ? 'line-through text-gray-400' : 'text-gray-700'}`}>
             {task.title}
           </p>
         </button>
@@ -158,7 +158,7 @@ function TaskRow({ task, onToggleDone, onEdit }: TaskRowProps) {
         {priorityConfig.label}
       </span>
       {task.project && (
-        <span className="flex-shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600">
+        <span className="flex-shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600">
           {task.project.title}
         </span>
       )}
@@ -183,11 +183,11 @@ function KpiCard({ kpi }: KpiCardProps) {
   );
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">{kpi.metric_name}</p>
-          <p className="text-2xl font-bold text-zinc-900 mt-2">{kpi.value}{kpi.unit || ''}</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{kpi.metric_name}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{kpi.value}{kpi.unit || ''}</p>
         </div>
         <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
           {trendIcon}
@@ -397,7 +397,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-600">Loading dashboard...</p>
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -413,62 +413,54 @@ export default function DashboardPage() {
         )}
 
         {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-zinc-900">{getGreeting()}</h1>
-          <p className="text-zinc-600 mt-1">{formatDate()}</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1">{getGreeting()} — {formatDate()}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAiDailyPlanOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              AI Daily Plan
+            </button>
+            <button
+              onClick={() => setAiWeeklyGoalsOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              Weekly Goals
+            </button>
+            <button
+              onClick={() => setAiTaskChatOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Task
+            </button>
+          </div>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white border border-zinc-200 rounded-lg p-4">
-            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Tasks Due Today</p>
-            <p className="text-3xl font-bold text-zinc-900 mt-2">{sortedTasks.length}</p>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tasks Today</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{sortedTasks.length}</p>
           </div>
-          <div className="bg-white border border-zinc-200 rounded-lg p-4">
-            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Active Projects</p>
-            <p className="text-3xl font-bold text-zinc-900 mt-2">{projects.length}</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Projects</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{projects.length}</p>
           </div>
-          <div className="bg-white border border-zinc-200 rounded-lg p-4">
-            <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Goals Progress</p>
-            <p className="text-3xl font-bold text-zinc-900 mt-2">{completedGoalsCount}/{dailyGoals.length}</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Daily Goals</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{completedGoalsCount}/{dailyGoals.length}</p>
           </div>
-        </div>
-
-        {/* AI Action Buttons Row */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <button
-            onClick={() => setAiDailyPlanOpen(true)}
-            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
-          >
-            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="font-medium text-zinc-900">AI Daily Plan</span>
-          </button>
-
-          <button
-            onClick={() => setAiWeeklyGoalsOpen(true)}
-            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
-          >
-            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="font-medium text-zinc-900">AI Weekly Goals</span>
-          </button>
-
-          <button
-            onClick={() => setAiTaskChatOpen(true)}
-            className="bg-white border border-zinc-200 rounded-lg p-4 hover:shadow-md transition-shadow flex items-center gap-3"
-          >
-            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="font-medium text-zinc-900">Add Tasks with AI</span>
-          </button>
         </div>
 
         {/* Goals Section */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <GoalsColumn
             title="Weekly Focus"
             goals={weeklyGoals}
@@ -487,20 +479,20 @@ export default function DashboardPage() {
         </div>
 
         {/* Today's Tasks Section */}
-        <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-8">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-zinc-900">Today's Tasks</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Today&apos;s Tasks</h3>
             <button
               onClick={handleNewTask}
-              className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New Task
+              Add Task
             </button>
           </div>
           <div className="space-y-2">
             {sortedTasks.length === 0 ? (
-              <p className="text-sm text-zinc-400 italic">No tasks for today</p>
+              <p className="text-sm text-gray-400 italic">No tasks for today</p>
             ) : (
               sortedTasks.map(task => (
                 <TaskRow
@@ -517,7 +509,7 @@ export default function DashboardPage() {
         {/* Favorite KPIs Section */}
         {kpis.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-zinc-900 mb-4">Favorite KPIs</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Favorite KPIs</h2>
             <div className="grid grid-cols-2 gap-4">
               {kpis.map(kpi => (
                 <KpiCard key={kpi.id} kpi={kpi} />

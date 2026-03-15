@@ -247,7 +247,7 @@ Return JSON with structure: { kpis: [{ metric_name, current_value, previous_valu
     if (trend === 'down' || (change !== null && change < 0)) {
       return <TrendingDownIcon className="w-4 h-4 text-red-500" />;
     }
-    return <div className="w-4 h-4 text-zinc-400">—</div>;
+    return <div className="w-4 h-4 text-gray-400">—</div>;
   };
 
   const LineChart = ({ items }: { items: KpiEntry[] }) => {

@@ -51,9 +51,10 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-xl shadow-2xl ${maxWidth} w-full mx-4 transition-transform duration-200 ${
+        className={`bg-white text-gray-900 rounded-xl shadow-2xl ${maxWidth} w-full mx-4 transition-transform duration-200 ${
           isVisible ? 'scale-100' : 'scale-95'
         }`}
+        style={{ colorScheme: 'light' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

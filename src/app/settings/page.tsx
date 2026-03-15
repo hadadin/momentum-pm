@@ -126,11 +126,11 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) return <div className="p-10 text-zinc-400">Loading settings...</div>
+  if (loading) return <div className="p-10 text-gray-400">Loading settings...</div>
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-10">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-8">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-8">Settings</h1>
 
       {/* Success message */}
       {saved && (
@@ -140,18 +140,18 @@ export default function SettingsPage() {
       )}
 
       {/* Workspace */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Workspace</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Workspace</h2>
         <form onSubmit={saveWorkspace} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Workspace Name</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Workspace Name</label>
             <input value={name} onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Description</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
             <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description"
-              className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <button type="submit" disabled={saving}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
@@ -161,23 +161,23 @@ export default function SettingsPage() {
       </section>
 
       {/* Working Hours */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Working Hours</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Working Hours</h2>
         <form onSubmit={saveWorkspace} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2">Work Start Time</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Work Start Time</label>
               <select value={workStartHour} onChange={e => setWorkStartHour(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 {Array.from({ length: 24 }, (_, i) => (
                   <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2">Work End Time</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Work End Time</label>
               <select value={workEndHour} onChange={e => setWorkEndHour(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 {Array.from({ length: 24 }, (_, i) => (
                   <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
                 ))}
@@ -192,22 +192,22 @@ export default function SettingsPage() {
       </section>
 
       {/* Calendar Preferences */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Calendar Preferences</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Calendar Preferences</h2>
         <form onSubmit={saveWorkspace} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2">Week Starts On</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Week Starts On</label>
               <select value={weekStartsOn} onChange={e => setWeekStartsOn(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value={0}>Sunday</option>
                 <option value={1}>Monday</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2">Default Task Duration</label>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Default Task Duration</label>
               <select value={defaultTaskDuration} onChange={e => setDefaultTaskDuration(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value={15}>15 min</option>
                 <option value={30}>30 min</option>
                 <option value={45}>45 min</option>
@@ -223,9 +223,9 @@ export default function SettingsPage() {
               id="showWeekends"
               checked={showWeekends}
               onChange={e => setShowWeekends(e.target.checked)}
-              className="w-4 h-4 border border-zinc-300 rounded accent-indigo-600"
+              className="w-4 h-4 border border-gray-300 rounded accent-indigo-600"
             />
-            <label htmlFor="showWeekends" className="text-sm text-zinc-700">Show weekends in calendar</label>
+            <label htmlFor="showWeekends" className="text-sm text-gray-700">Show weekends in calendar</label>
           </div>
           <button type="submit" disabled={saving}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
@@ -235,8 +235,8 @@ export default function SettingsPage() {
       </section>
 
       {/* Data Summary */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Data Summary</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Data Summary</h2>
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: 'Tasks', count: stats.tasks, icon: '✓' },
@@ -246,35 +246,35 @@ export default function SettingsPage() {
             { label: 'Meetings', count: stats.meetings, icon: '◷' },
             { label: 'KPI Entries', count: stats.kpis, icon: '↗' },
           ].map(s => (
-            <div key={s.label} className="bg-zinc-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-zinc-900">{s.count}</div>
-              <div className="text-xs text-zinc-500">{s.label}</div>
+            <div key={s.label} className="bg-gray-50 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-900">{s.count}</div>
+              <div className="text-xs text-gray-500">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* Data Management */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Data Management</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Data Management</h2>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-zinc-100">
+          <div className="flex items-center justify-between py-3 border-b border-gray-100">
             <div>
-              <div className="text-sm font-medium text-zinc-900">Export Data</div>
-              <div className="text-xs text-zinc-500">Download all tasks and projects as JSON</div>
+              <div className="text-sm font-medium text-gray-900">Export Data</div>
+              <div className="text-xs text-gray-500">Download all tasks and projects as JSON</div>
             </div>
             <button
               onClick={handleExportData}
               disabled={exporting}
-              className="px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-200 disabled:opacity-50"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
             >
               {exporting ? 'Exporting...' : 'Export'}
             </button>
           </div>
           <div className="flex items-center justify-between py-3">
             <div>
-              <div className="text-sm font-medium text-zinc-900">Delete Completed Tasks</div>
-              <div className="text-xs text-zinc-500">{completedTasksCount} completed task{completedTasksCount !== 1 ? 's' : ''}</div>
+              <div className="text-sm font-medium text-gray-900">Delete Completed Tasks</div>
+              <div className="text-xs text-gray-500">{completedTasksCount} completed task{completedTasksCount !== 1 ? 's' : ''}</div>
             </div>
             {completedTasksCount > 0 && (
               <button
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={deletingCompleted}
-                  className="px-4 py-2 bg-zinc-200 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-300 disabled:opacity-50"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -315,20 +315,20 @@ export default function SettingsPage() {
       </section>
 
       {/* Integrations */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Integrations</h2>
+      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Integrations</h2>
         <div className="space-y-3">
           <div className="flex items-center justify-between py-2">
             <div>
-              <div className="text-sm font-medium text-zinc-900">Supabase</div>
-              <div className="text-xs text-zinc-400">Database & Auth</div>
+              <div className="text-sm font-medium text-gray-900">Supabase</div>
+              <div className="text-xs text-gray-400">Database & Auth</div>
             </div>
             <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Connected</span>
           </div>
-          <div className="flex items-center justify-between py-2 border-t border-zinc-100">
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
             <div>
-              <div className="text-sm font-medium text-zinc-900">Gemini AI</div>
-              <div className="text-xs text-zinc-400">In-app AI engine</div>
+              <div className="text-sm font-medium text-gray-900">Gemini AI</div>
+              <div className="text-xs text-gray-400">In-app AI engine</div>
             </div>
             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending Setup</span>
           </div>
@@ -336,10 +336,10 @@ export default function SettingsPage() {
       </section>
 
       {/* About */}
-      <section className="bg-white border border-zinc-200 rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-2">About</h2>
-        <p className="text-sm text-zinc-500">Momentum PM v1.0 — Personal OS for Product Managers</p>
-        <p className="text-xs text-zinc-400 mt-1">Built with Next.js 16, React 19, Supabase, Tailwind CSS 4</p>
+      <section className="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">About</h2>
+        <p className="text-sm text-gray-500">Momentum PM v1.0 — Personal OS for Product Managers</p>
+        <p className="text-xs text-gray-400 mt-1">Built with Next.js 16, React 19, Supabase, Tailwind CSS 4</p>
       </section>
     </div>
   )

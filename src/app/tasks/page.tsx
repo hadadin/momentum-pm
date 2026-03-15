@@ -42,13 +42,13 @@ function SubtaskList({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="mt-3 space-y-2 pl-8 border-l-2 border-zinc-100">
+    <div className="mt-3 space-y-2 pl-8 border-l-2 border-gray-100">
       {subtasks.map(st => (
         <div key={st.id} className="flex items-center gap-2 py-1.5">
           <button
             onClick={() => onToggle(st.id, st.completed)}
             className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-              st.completed ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-indigo-400'
+              st.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-400'
             }`}
           >
             {st.completed && (
@@ -57,12 +57,12 @@ function SubtaskList({
               </svg>
             )}
           </button>
-          <span className={`text-xs ${st.completed ? 'line-through text-zinc-400' : 'text-zinc-600'}`}>
+          <span className={`text-xs ${st.completed ? 'line-through text-gray-400' : 'text-gray-600'}`}>
             {st.title}
           </span>
           <button
             onClick={() => onDelete(st.id)}
-            className="ml-auto text-zinc-300 hover:text-red-400 transition-colors"
+            className="ml-auto text-gray-300 hover:text-red-400 transition-colors"
             aria-label="Delete subtask"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -119,13 +119,13 @@ function TaskRow({
   };
 
   return (
-    <div className="bg-white border-b border-zinc-100 hover:bg-gray-50 transition-colors group">
+    <div className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors group">
       <div className={`flex items-start gap-3 px-4 py-3 border-l-4 ${pc.border}`}>
         {/* Checkbox */}
         <button
           onClick={() => onToggle(task.id, done)}
           className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-            done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-indigo-400'
+            done ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-400'
           }`}
         >
           {done && (
@@ -139,12 +139,12 @@ function TaskRow({
         <div className="flex-1 min-w-0">
           <button
             onClick={() => onEdit(task)}
-            className={`text-sm font-medium text-left hover:text-indigo-600 transition-colors ${done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}
+            className={`text-sm font-medium text-left hover:text-indigo-600 transition-colors ${done ? 'line-through text-gray-400' : 'text-gray-800'}`}
           >
             {task.title}
           </button>
           {task.description && (
-            <p className="text-xs text-zinc-400 mt-0.5 truncate">{task.description}</p>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{task.description}</p>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {/* Status dropdown */}
@@ -165,26 +165,26 @@ function TaskRow({
 
             {/* Project */}
             {task.project && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                 {task.project.title}
               </span>
             )}
 
             {/* Due date */}
             {task.due_date && (
-              <span className={`text-xs ${overdue ? 'text-red-500 font-medium' : 'text-zinc-400'}`}>
+              <span className={`text-xs ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
                 {overdue ? '⚠ ' : ''}Due {task.due_date}
               </span>
             )}
 
             {/* Time estimate */}
             {task.time_estimate_minutes && (
-              <span className="text-xs text-zinc-400">⏱ {task.time_estimate_minutes}m</span>
+              <span className="text-xs text-gray-400">⏱ {task.time_estimate_minutes}m</span>
             )}
 
             {/* Tags */}
             {task.tags?.map(tag => (
-              <span key={tag} className="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">
+              <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
                 #{tag}
               </span>
             ))}
@@ -206,7 +206,7 @@ function TaskRow({
           {/* Focus mode button */}
           <button
             onClick={() => onFocus(task)}
-            className="p-1.5 text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
             aria-label="Focus mode"
             title="Focus mode"
           >
@@ -219,7 +219,7 @@ function TaskRow({
 
       {/* Subtasks */}
       {isExpanded && (
-        <div className="px-4 py-3 bg-gray-50 border-t border-zinc-100">
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
           {subtasks.length > 0 && (
             <SubtaskList
               subtasks={subtasks}
@@ -241,7 +241,7 @@ function TaskRow({
                   handleAddSubtask();
                 }
               }}
-              className="flex-1 text-xs px-2 py-1.5 border border-zinc-200 rounded-lg bg-white text-zinc-700 placeholder-zinc-400 outline-none focus:ring-1 focus:ring-indigo-400"
+              className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-700 placeholder-gray-400 outline-none focus:ring-1 focus:ring-indigo-400"
             />
             <button
               onClick={handleAddSubtask}
@@ -278,13 +278,13 @@ function KanbanTaskCard({
   const pc = PRIORITY_CONFIG[task.priority];
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-3 hover:shadow-md transition-shadow group cursor-pointer">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow group cursor-pointer">
       {/* Header with checkbox */}
       <div className="flex items-start gap-2 mb-2">
         <button
           onClick={() => onToggle(task.id, done)}
           className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-            done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-indigo-400'
+            done ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-400'
           }`}
         >
           {done && (
@@ -298,7 +298,7 @@ function KanbanTaskCard({
       {/* Title */}
       <button
         onClick={() => onEdit(task)}
-        className={`text-sm font-medium text-left mb-2 w-full hover:text-indigo-600 transition-colors ${done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}
+        className={`text-sm font-medium text-left mb-2 w-full hover:text-indigo-600 transition-colors ${done ? 'line-through text-gray-400' : 'text-gray-800'}`}
       >
         {task.title}
       </button>
@@ -309,7 +309,7 @@ function KanbanTaskCard({
           {pc.label}
         </span>
         {task.project && (
-          <span className="text-xs bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
             {task.project.title}
           </span>
         )}
@@ -322,17 +322,17 @@ function KanbanTaskCard({
 
       {/* Due date */}
       {task.due_date && (
-        <p className={`text-xs mb-2 ${overdue ? 'text-red-500 font-medium' : 'text-zinc-400'}`}>
+        <p className={`text-xs mb-2 ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
           {overdue ? '⚠ ' : ''}Due {task.due_date}
         </p>
       )}
 
       {/* Status + Focus buttons */}
-      <div className="flex gap-1.5 pt-2 border-t border-zinc-100">
+      <div className="flex gap-1.5 pt-2 border-t border-gray-100">
         <select
           value={task.status}
           onChange={e => onStatusChange(task.id, e.target.value as TaskStatus)}
-          className="flex-1 text-xs px-1.5 py-1 border border-zinc-200 rounded bg-white text-zinc-600 outline-none focus:ring-1 focus:ring-indigo-400"
+          className="flex-1 text-xs px-1.5 py-1 border border-gray-200 rounded bg-white text-gray-600 outline-none focus:ring-1 focus:ring-indigo-400"
         >
           {ALL_STATUSES.map(s => (
             <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
@@ -340,7 +340,7 @@ function KanbanTaskCard({
         </select>
         <button
           onClick={() => onFocus(task)}
-          className="p-1 text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 rounded transition-colors"
+          className="p-1 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded transition-colors"
           title="Focus mode"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -542,7 +542,7 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">
+          <h1 className="text-2xl font-bold text-gray-900">
             Tasks
             <span className="ml-3 inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium">
               {tasks.length}
@@ -551,24 +551,24 @@ export default function TasksPage() {
         </div>
 
         {/* View toggle */}
-        <div className="flex bg-white border border-zinc-200 rounded-lg overflow-hidden">
+        <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={() => setViewMode('list')}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               viewMode === 'list'
                 ? 'bg-indigo-600 text-white'
-                : 'text-zinc-600 hover:bg-gray-50'
+                : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             List
           </button>
-          <div className="w-px bg-zinc-200" />
+          <div className="w-px bg-gray-200" />
           <button
             onClick={() => setViewMode('kanban')}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               viewMode === 'kanban'
                 ? 'bg-indigo-600 text-white'
-                : 'text-zinc-600 hover:bg-gray-50'
+                : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             Kanban
@@ -579,7 +579,7 @@ export default function TasksPage() {
       {/* Filter bar */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         {/* Status filters */}
-        <div className="flex bg-white border border-zinc-200 rounded-xl overflow-hidden p-0.5 gap-0.5">
+        <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden p-0.5 gap-0.5">
           {(['all', 'backlog', 'today', 'in_progress', 'blocked', 'done'] as const).map((value) => {
             const label = value === 'all' ? 'All' : STATUS_CONFIG[value]?.label || value;
             return (
@@ -588,8 +588,8 @@ export default function TasksPage() {
                 onClick={() => setStatusFilter(value === 'all' ? 'all' : value)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   statusFilter === value
-                    ? 'bg-zinc-900 text-white'
-                    : 'text-zinc-500 hover:text-zinc-700 hover:bg-gray-50'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 {label}
@@ -602,7 +602,7 @@ export default function TasksPage() {
         <select
           value={priorityFilter}
           onChange={e => setPriorityFilter(e.target.value as TaskPriority | 'all')}
-          className="text-xs border border-zinc-200 bg-white rounded-xl px-3 py-2 text-zinc-600 outline-none focus:ring-1 focus:ring-indigo-400"
+          className="text-xs border border-gray-200 bg-white rounded-xl px-3 py-2 text-gray-600 outline-none focus:ring-1 focus:ring-indigo-400"
         >
           <option value="all">All priorities</option>
           {ALL_PRIORITIES.map(p => (
@@ -614,7 +614,7 @@ export default function TasksPage() {
         <select
           value={projectFilter}
           onChange={e => setProjectFilter(e.target.value)}
-          className="text-xs border border-zinc-200 bg-white rounded-xl px-3 py-2 text-zinc-600 outline-none focus:ring-1 focus:ring-indigo-400"
+          className="text-xs border border-gray-200 bg-white rounded-xl px-3 py-2 text-gray-600 outline-none focus:ring-1 focus:ring-indigo-400"
         >
           <option value="all">All projects</option>
           {projects.map(p => (
@@ -634,7 +634,7 @@ export default function TasksPage() {
 
           <button
             onClick={() => setAiTaskChatOpen(true)}
-            className="px-4 py-2 text-sm bg-white border border-zinc-200 text-zinc-900 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             Add with AI
@@ -646,16 +646,16 @@ export default function TasksPage() {
       {loading ? (
         <div className="space-y-px rounded-xl overflow-hidden">
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-16 bg-zinc-200 animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+            <div key={i} className="h-16 bg-gray-200 animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
           ))}
         </div>
       ) : sorted.length === 0 ? (
-        <div className="bg-white border border-dashed border-zinc-200 rounded-xl px-6 py-12 text-center">
-          <p className="text-zinc-600 font-medium text-sm">No tasks match this filter</p>
-          <p className="text-zinc-400 text-xs mt-1">Try a different filter or create a new task</p>
+        <div className="bg-white border border-dashed border-gray-200 rounded-xl px-6 py-12 text-center">
+          <p className="text-gray-600 font-medium text-sm">No tasks match this filter</p>
+          <p className="text-gray-400 text-xs mt-1">Try a different filter or create a new task</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="rounded-xl overflow-hidden border border-zinc-200 mb-4 bg-white">
+        <div className="rounded-xl overflow-hidden border border-gray-200 mb-4 bg-white">
           {sorted.map(task => (
             <TaskRow
               key={task.id}
@@ -689,13 +689,13 @@ export default function TasksPage() {
 
             return (
               <div key={column} className="flex flex-col">
-                <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">
                   {columnLabels[column]} ({columnTasks.length})
                 </h2>
                 <div className="flex-1 space-y-3 bg-gray-50 rounded-xl p-4 min-h-96">
                   {columnTasks.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-xs text-zinc-400">No tasks</p>
+                      <p className="text-xs text-gray-400">No tasks</p>
                     </div>
                   ) : (
                     columnTasks.map(task => (

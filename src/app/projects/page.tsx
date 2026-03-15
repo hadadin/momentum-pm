@@ -13,7 +13,7 @@ const PHASE_CONFIG: Record<ProjectPhase, { label: string; borderColor: string }>
   development: { label: 'Development', borderColor: 'border-t-amber-500' },
   testing:     { label: 'Testing',     borderColor: 'border-t-orange-500' },
   launched:    { label: 'Launched',    borderColor: 'border-t-green-500' },
-  archived:    { label: 'Archived',    borderColor: 'border-t-zinc-400' },
+  archived:    { label: 'Archived',    borderColor: 'border-t-gray-400' },
 }
 
 export default function ProjectsPage() {
@@ -66,7 +66,7 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-zinc-400">
+        <div className="text-gray-400">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
           <p>Loading projects...</p>
         </div>
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
   }
 
   if (!workspace) {
-    return <div className="p-10 text-center text-zinc-400">No workspace found</div>
+    return <div className="p-10 text-center text-gray-400">No workspace found</div>
   }
 
   // Group projects by phase
@@ -87,12 +87,12 @@ export default function ProjectsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900">Projects</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
           </div>
           <button
             onClick={() => {
@@ -118,8 +118,8 @@ export default function ProjectsPage() {
               <div key={phase} className="flex flex-col">
                 {/* Column Header */}
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-zinc-700">{config.label}</h2>
-                  <span className="text-xs font-medium text-zinc-500 bg-zinc-200 px-2.5 py-1 rounded-full">
+                  <h2 className="text-sm font-semibold text-gray-700">{config.label}</h2>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-1 rounded-full">
                     {phaseProjects.length}
                   </span>
                 </div>
@@ -127,7 +127,7 @@ export default function ProjectsPage() {
                 {/* Column Cards */}
                 <div className="space-y-3 flex-1">
                   {phaseProjects.length === 0 ? (
-                    <div className="bg-white border border-zinc-200 rounded-lg p-4 text-center text-sm text-zinc-400 h-32 flex items-center justify-center">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-400 h-32 flex items-center justify-center">
                       No projects
                     </div>
                   ) : (
@@ -138,7 +138,7 @@ export default function ProjectsPage() {
                         <button
                           key={p.id}
                           onClick={() => handleCardClick(p)}
-                          className={`${config.borderColor} border-t-4 bg-white border border-zinc-200 rounded-lg p-4 text-left hover:shadow-md transition-shadow cursor-pointer group`}
+                          className={`${config.borderColor} border-t-4 bg-white border border-gray-200 rounded-lg p-4 text-left hover:shadow-md transition-shadow cursor-pointer group`}
                         >
                           {/* Title with color dot */}
                           <div className="flex items-start gap-2.5 mb-2.5">
@@ -147,17 +147,17 @@ export default function ProjectsPage() {
                               style={{ backgroundColor: p.color }}
                             />
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-zinc-900 text-sm break-words">{p.title}</h3>
+                              <h3 className="font-semibold text-gray-900 text-sm break-words">{p.title}</h3>
                             </div>
                           </div>
 
                           {/* Description */}
                           {p.description && (
-                            <p className="text-xs text-zinc-500 line-clamp-1 mb-3 ml-4.5">{p.description}</p>
+                            <p className="text-xs text-gray-500 line-clamp-1 mb-3 ml-4.5">{p.description}</p>
                           )}
 
                           {/* Metadata */}
-                          <div className="flex items-center gap-2 text-xs text-zinc-400 ml-4.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-400 ml-4.5">
                             {p.due_date && (
                               <>
                                 <span>📅 {p.due_date}</span>

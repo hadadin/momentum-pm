@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'GEMINI_API_KEY is not configured. Add it to Vercel environment variables.' },
+        { error: 'ANTHROPIC_API_KEY is not configured. Add it to Vercel environment variables.' },
         { status: 500 }
       )
     }
@@ -20,28 +20,29 @@ export async function POST(req: NextRequest) {
       ? `\n\nYou MUST respond with ONLY valid JSON — no markdown, no code blocks, no explanation. Use exactly this structure:\n${JSON.stringify(responseSchema, null, 2)}`
       : ''
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt + schemaInstruction }] }],
-          generationConfig: { temperature: 0.2 },
-        }),
-      }
-    )
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt + schemaInstruction }],
+      }),
+    })
 
-    const geminiData = await response.json()
+    const anthropicData = await response.json()
 
     if (!response.ok) {
       const errMsg =
-        geminiData?.error?.message || `Gemini API error: ${response.status}`
+        anthropicData?.error?.message || `Anthropic API error: ${response.status}`
       return NextResponse.json({ error: errMsg }, { status: response.status })
     }
 
-    const text: string =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    const text: string = anthropicData?.content?.[0]?.text ?? ''
 
     if (responseSchema) {
       try {
